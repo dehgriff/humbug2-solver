@@ -100,12 +100,16 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 		to, ok, fell = fly(p, bug.Pos, dir, 2, occupied)
 	case Grasshopper:
 		to, ok, fell = fly(p, bug.Pos, dir, 1, occupied)
+	case Butterfly:
+		to, ok, fell = fly(p, bug.Pos, dir, 3, occupied)
 	case Ladybird:
-		to, ok, fell = walk(p, bug, dir, 2, occupied)
+		to, ok, fell = walk(p, bug, dir, 2, occupied, false)
 	case PinkLadybird:
-		to, ok, fell = walk(p, bug, dir, 3, occupied)
+		to, ok, fell = walk(p, bug, dir, 3, occupied, false)
 	case Snail:
-		to, ok, fell = walk(p, bug, dir, 1, occupied)
+		to, ok, fell = walk(p, bug, dir, 1, occupied, false)
+	case Cockroach:
+		to, ok, fell = walk(p, bug, dir, 2, occupied, true)
 	case Spider:
 		to, ok, fell = spider(p, bug, dir, occupied)
 	case Beetle:
@@ -120,10 +124,10 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	return s, Move{Kind: bug.Kind, From: from, Dir: dir, To: to}, true
 }
 
-func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int) (Pos, bool, bool) {
+func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int, crossesWalls bool) (Pos, bool, bool) {
 	cur := bug.Pos
 	for step := 0; step < limit; step++ {
-		if hasWall(p, cur, dir) {
+		if !crossesWalls && hasWall(p, cur, dir) {
 			return cur, cur != bug.Pos, false
 		}
 		next := add(cur, deltas[dir])
@@ -132,13 +136,13 @@ func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int) (Po
 		}
 		// Dropping from high to low changes to landing/bounce behaviour.
 		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
-			return land(p, next, dir, occupied, false)
+			return land(p, next, dir, occupied, crossesWalls)
 		}
 		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
 			return cur, cur != bug.Pos, false
 		}
 		if p.Trampolines[next.R][next.C] {
-			return land(p, next, dir, occupied, false)
+			return land(p, next, dir, occupied, crossesWalls)
 		}
 		if _, blocked := occupied[next]; blocked {
 			return cur, cur != bug.Pos, false
@@ -236,7 +240,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		}
 		chain = append(chain, j)
 		dest := add(cur, deltas[dir])
-		if hasWall(p, cur, dir) {
+		if s.Bugs[j].Kind != Cockroach && hasWall(p, cur, dir) {
 			return start, false, false
 		}
 		if !inside(dest) || p.Terrain[dest.R][dest.C] == Void {
@@ -250,7 +254,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	landing := cur
 	if p.Trampolines[cur.R][cur.C] {
 		var ok, fell bool
-		landing, ok, fell = land(p, cur, dir, occ, false)
+		landing, ok, fell = land(p, cur, dir, occ, s.Bugs[chain[len(chain)-1]].Kind == Cockroach)
 		if fell || !ok {
 			return Pos{}, false, fell
 		}
@@ -271,7 +275,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			landing := cur
 			if p.Trampolines[cur.R][cur.C] {
 				var ok, fell bool
-				landing, ok, fell = land(p, cur, dir, occ, false)
+				landing, ok, fell = land(p, cur, dir, occ, s.Bugs[chain[len(chain)-1]].Kind == Cockroach)
 				if fell || !ok {
 					return Pos{}, false, fell
 				}
@@ -280,7 +284,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			return next, true, false
 		}
 		chain = append(chain, j)
-		if hasWall(p, cur, dir) {
+		if s.Bugs[j].Kind != Cockroach && hasWall(p, cur, dir) {
 			return start, false, false
 		}
 		cur = add(cur, deltas[dir])
@@ -290,7 +294,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 		// beetle's level and cannot be pushed.
 		return start, false, false
 	}
-	landing, ok, fell := land(p, cur, dir, occ, false)
+	landing, ok, fell := land(p, cur, dir, occ, s.Bugs[chain[len(chain)-1]].Kind == Cockroach)
 	if fell || !ok {
 		return Pos{}, false, fell
 	}

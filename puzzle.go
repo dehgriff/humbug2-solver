@@ -20,6 +20,8 @@ const (
 	Snail        BugType = 'N'
 	PinkLadybird BugType = 'P'
 	Grasshopper  BugType = 'G'
+	Butterfly    BugType = 'F'
+	Cockroach    BugType = 'C'
 )
 
 func (b BugType) String() string {
@@ -38,6 +40,10 @@ func (b BugType) String() string {
 		return "pink ladybird"
 	case Grasshopper:
 		return "grasshopper"
+	case Butterfly:
+		return "butterfly"
+	case Cockroach:
+		return "cockroach"
 	default:
 		return "unknown"
 	}
@@ -156,10 +162,10 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c] = High
 				p.Stars[r][c] = starCount(cell)
 				stars += int(p.Stars[r][c])
-			case "l", "b", "s", "t", "n", "p", "g":
+			case "l", "b", "s", "t", "n", "p", "g", "f", "c":
 				p.Terrain[r][c] = Low
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
-			case "L", "B", "S", "T", "N", "P", "G":
+			case "L", "B", "S", "T", "N", "P", "G", "F", "C":
 				p.Terrain[r][c] = High
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
 			default:
@@ -243,7 +249,11 @@ func bugRune(ch rune) BugType {
 		return Snail
 	case 'p', 'P':
 		return PinkLadybird
-	default:
+	case 'g', 'G':
 		return Grasshopper
+	case 'f', 'F':
+		return Butterfly
+	default:
+		return Cockroach
 	}
 }

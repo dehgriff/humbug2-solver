@@ -63,6 +63,46 @@ func TestGrasshopperFliesOneSquareAcrossWall(t *testing.T) {
 	}
 }
 
+func TestButterflyFliesThreeSquaresAcrossWall(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.f..*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 2 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].Kind != Butterfly || moves[0].To != (Pos{2, 4}) {
+		t.Fatalf("unexpected butterfly solution: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestCockroachWalksTwoSquaresThroughWalls(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..co*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 3 right\nwall 3 4 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].Kind != Cockroach || moves[0].To != (Pos{2, 4}) {
+		t.Fatalf("unexpected cockroach solution: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestCockroachStillCannotClimb(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..cO*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	if _, _, ok := applyMove(p, s, 0, Right); ok {
+		t.Fatal("low cockroach should not climb onto a high platform")
+	}
+}
+
+func TestPushedCockroachPassesUnderWall(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..tc*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 4 right\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle {
+		t.Fatalf("pushed cockroach should pass under wall onto star: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+}
+
 func TestWalkingBugBouncesAsSoonAsItCrossesTrampoline(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n.px*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	moves, ok := Solve(p)

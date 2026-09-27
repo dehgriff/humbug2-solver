@@ -40,9 +40,15 @@ Each board row is exactly ten characters:
 | `n` / `N` | snail on a low / high platform |
 | `p` / `P` | Pink Ladybird on a low / high platform |
 | `g` / `G` | grasshopper on a low / high platform |
+| `f` / `F` | butterfly on a low / high platform |
+| `c` / `C` | cockroach on a low / high platform |
 
 The file must contain the same number of bugs and stars. Coordinates printed
 in solutions are one-based `(row,column)` coordinates.
+
+Butterflies fly three squares before landing. Cockroaches walk two squares and
+obey normal non-flying height and obstacle rules, but walls have no effect on
+them while walking, landing, bouncing, crossing trampolines, or being pushed.
 
 Rows containing only single-character cells can use the compact form shown
 above. To place multiple stars on one platform, write all ten cells separated
