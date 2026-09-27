@@ -49,9 +49,11 @@ in solutions are one-based `(row,column)` coordinates.
 
 Butterflies fly three squares before landing. Cockroaches walk two squares and
 obey normal non-flying height and obstacle rules, but walls have no effect on
-them while walking, landing, bouncing, crossing trampolines, or being pushed.
+them while walking, landing, bouncing, or crossing trampolines. When pushed,
+they are blocked by walls normally.
 Gold Beetles also walk two squares and ignore walls, but permanently remove
-each wall they cross. The `d`/`D` notation uses the final letter of “gold”.
+each wall they cross during their own movement. When pushed, they neither pass
+through nor destroy walls. The `d`/`D` notation uses the final letter of “gold”.
 
 Rows containing only single-character cells can use the compact form shown
 above. To place multiple stars on one platform, write all ten cells separated

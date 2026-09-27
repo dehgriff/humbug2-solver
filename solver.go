@@ -125,13 +125,6 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	if bug.Kind == GoldBeetle {
 		knockDownWalls(&s.Walls, from, to, dir)
 	}
-	if bug.Kind == Beetle {
-		for i := range s.Bugs {
-			if s.Bugs[i].Kind == GoldBeetle && s.Bugs[i].Pos != old.Bugs[i].Pos {
-				knockDownWalls(&s.Walls, old.Bugs[i].Pos, s.Bugs[i].Pos, dir)
-			}
-		}
-	}
 	s.Bugs[index].Pos = to
 	consumeStars(&s)
 	canonicalize(&s)
@@ -254,7 +247,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		}
 		chain = append(chain, j)
 		dest := add(cur, deltas[dir])
-		if !ignoresWalls(s.Bugs[j].Kind) && hasWall(p, cur, dir) {
+		if hasWall(p, cur, dir) {
 			return start, false, false
 		}
 		if !inside(dest) || p.Terrain[dest.R][dest.C] == Void {
@@ -268,7 +261,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	landing := cur
 	if p.Trampolines[cur.R][cur.C] {
 		var ok, fell bool
-		landing, ok, fell = land(p, cur, dir, occ, ignoresWalls(s.Bugs[chain[len(chain)-1]].Kind))
+		landing, ok, fell = land(p, cur, dir, occ, false)
 		if fell || !ok {
 			return Pos{}, false, fell
 		}
@@ -289,7 +282,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			landing := cur
 			if p.Trampolines[cur.R][cur.C] {
 				var ok, fell bool
-				landing, ok, fell = land(p, cur, dir, occ, ignoresWalls(s.Bugs[chain[len(chain)-1]].Kind))
+				landing, ok, fell = land(p, cur, dir, occ, false)
 				if fell || !ok {
 					return Pos{}, false, fell
 				}
@@ -298,7 +291,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			return next, true, false
 		}
 		chain = append(chain, j)
-		if !ignoresWalls(s.Bugs[j].Kind) && hasWall(p, cur, dir) {
+		if hasWall(p, cur, dir) {
 			return start, false, false
 		}
 		cur = add(cur, deltas[dir])
@@ -308,7 +301,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 		// beetle's level and cannot be pushed.
 		return start, false, false
 	}
-	landing, ok, fell := land(p, cur, dir, occ, ignoresWalls(s.Bugs[chain[len(chain)-1]].Kind))
+	landing, ok, fell := land(p, cur, dir, occ, false)
 	if fell || !ok {
 		return Pos{}, false, fell
 	}
@@ -394,8 +387,6 @@ func inside(p Pos) bool { return p.R >= 0 && p.R < BoardSize && p.C >= 0 && p.C 
 func hasWall(p Puzzle, from Pos, dir Direction) bool {
 	return inside(from) && p.Walls[from.R][from.C]&(1<<dir) != 0
 }
-
-func ignoresWalls(kind BugType) bool { return kind == Cockroach || kind == GoldBeetle }
 
 func knockDownWalls(walls *[BoardSize][BoardSize]uint8, from, to Pos, dir Direction) {
 	cur := from

@@ -87,7 +87,7 @@ func TestCockroachStillCannotClimb(t *testing.T) {
 	}
 }
 
-func TestPushedCockroachPassesUnderWall(t *testing.T) {
+func TestPushedCockroachIsBlockedByWall(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..tc*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 4 right\n")
 	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&s)
@@ -97,9 +97,8 @@ func TestPushedCockroachPassesUnderWall(t *testing.T) {
 			beetleIndex = i
 		}
 	}
-	next, _, ok := applyMove(p, s, beetleIndex, Right)
-	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle {
-		t.Fatalf("pushed cockroach should pass under wall onto star: ok=%v bugs=%+v", ok, next.Bugs)
+	if _, _, ok := applyMove(p, s, beetleIndex, Right); ok {
+		t.Fatal("pushed cockroach must not pass under wall")
 	}
 }
 
@@ -115,7 +114,7 @@ func TestGoldBeetleMovesTwoSquaresAndKnocksDownWalls(t *testing.T) {
 	}
 }
 
-func TestPushedGoldBeetleKnocksDownWall(t *testing.T) {
+func TestPushedGoldBeetleIsBlockedByWall(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..td*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 4 right\n")
 	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&s)
@@ -125,12 +124,8 @@ func TestPushedGoldBeetleKnocksDownWall(t *testing.T) {
 			beetleIndex = i
 		}
 	}
-	next, _, ok := applyMove(p, s, beetleIndex, Right)
-	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle {
-		t.Fatalf("pushed Gold Beetle should cross wall onto star: ok=%v bugs=%+v", ok, next.Bugs)
-	}
-	if hasWall(Puzzle{Walls: next.Walls}, Pos{2, 3}, Right) {
-		t.Fatal("pushed Gold Beetle did not knock down wall")
+	if _, _, ok := applyMove(p, s, beetleIndex, Right); ok {
+		t.Fatal("pushed Gold Beetle must not pass through or destroy wall")
 	}
 }
 
