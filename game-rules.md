@@ -14,10 +14,12 @@ The game is lost if any bug falls off the board.
 A game has a maximum number of moves allowed, after which the game is over if not all bugs have been moved onto stars.
 There are different types of bugs which have unique movement rules.
 A 'ladybird' moves two squares in the chosen direction per 'go', or until it encounters an obstacle (such as another bug).
+A 'Pink Ladybird' is non-flying and moves three squares in the chosen direction per 'go', or until it encounters an obstacle.
 A 'snail' is a non-flying bug that moves one square in the chosen direction per 'go'.
 A star is not an obstacle and does not prevent bugs from moving onto or over the square.
 The edge of the board is not an obstacle and does not prevent bugs from falling off the board.
 A 'bee' flies two squares before dropping onto the square. Hence it can fly over obstacles.
+A 'grasshopper' flies one square before dropping onto the square.
 If a flying bug (e.g. bee) lands on a square that is occupied, it 'bounces' and tries to land on the next square in the same direction.
 After bouncing from another bug, the next landing platform may be either low or high.
 A 'spider' keeps moving in the direction it is started for as many squares as possible until it hits an obstacle, or falls off the board.

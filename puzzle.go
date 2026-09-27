@@ -13,11 +13,13 @@ const BoardSize = 10
 type BugType byte
 
 const (
-	Ladybird BugType = 'L'
-	Bee      BugType = 'B'
-	Spider   BugType = 'S'
-	Beetle   BugType = 'T'
-	Snail    BugType = 'N'
+	Ladybird     BugType = 'L'
+	Bee          BugType = 'B'
+	Spider       BugType = 'S'
+	Beetle       BugType = 'T'
+	Snail        BugType = 'N'
+	PinkLadybird BugType = 'P'
+	Grasshopper  BugType = 'G'
 )
 
 func (b BugType) String() string {
@@ -32,6 +34,10 @@ func (b BugType) String() string {
 		return "beetle"
 	case Snail:
 		return "snail"
+	case PinkLadybird:
+		return "pink ladybird"
+	case Grasshopper:
+		return "grasshopper"
 	default:
 		return "unknown"
 	}
@@ -145,10 +151,10 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c] = High
 				p.Stars[r][c] = starCount(cell)
 				stars += int(p.Stars[r][c])
-			case "l", "b", "s", "t", "n":
+			case "l", "b", "s", "t", "n", "p", "g":
 				p.Terrain[r][c] = Low
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
-			case "L", "B", "S", "T", "N":
+			case "L", "B", "S", "T", "N", "P", "G":
 				p.Terrain[r][c] = High
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
 			default:
@@ -224,7 +230,11 @@ func bugRune(ch rune) BugType {
 		return Spider
 	case 't', 'T':
 		return Beetle
-	default:
+	case 'n', 'N':
 		return Snail
+	case 'p', 'P':
+		return PinkLadybird
+	default:
+		return Grasshopper
 	}
 }

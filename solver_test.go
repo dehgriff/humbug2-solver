@@ -41,6 +41,28 @@ func TestSnailIsNonFlying(t *testing.T) {
 	}
 }
 
+func TestPinkLadybirdMovesThreeSquares(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..poo*....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 {
+		t.Fatalf("got ok=%v moves=%v", ok, moves)
+	}
+	if moves[0].Kind != PinkLadybird || moves[0].Dir != Right || moves[0].To != (Pos{2, 5}) {
+		t.Fatalf("unexpected Pink Ladybird move: %+v", moves[0])
+	}
+}
+
+func TestGrasshopperFliesOneSquareAcrossWall(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..g*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 3 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 {
+		t.Fatalf("got ok=%v moves=%v", ok, moves)
+	}
+	if moves[0].Kind != Grasshopper || moves[0].Dir != Right || moves[0].To != (Pos{2, 3}) {
+		t.Fatalf("unexpected grasshopper move: %+v", moves[0])
+	}
+}
+
 func TestMultipleStarsOnOnePlatformAreConsumedIndividually(t *testing.T) {
 	p := puzzle(t, "max-moves 6\n. . . . . . . . . .\n. . . . . . . . . .\nn n n *3 . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n")
 	star := Pos{2, 3}

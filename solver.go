@@ -98,8 +98,12 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	switch bug.Kind {
 	case Bee:
 		to, ok, fell = fly(p, bug.Pos, dir, 2, occupied)
+	case Grasshopper:
+		to, ok, fell = fly(p, bug.Pos, dir, 1, occupied)
 	case Ladybird:
 		to, ok, fell = walk(p, bug, dir, 2, occupied)
+	case PinkLadybird:
+		to, ok, fell = walk(p, bug, dir, 3, occupied)
 	case Snail:
 		to, ok, fell = walk(p, bug, dir, 1, occupied)
 	case Spider:

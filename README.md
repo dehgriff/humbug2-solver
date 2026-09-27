@@ -37,6 +37,8 @@ Each board row is exactly ten characters:
 | `s` / `S` | spider on a low / high platform |
 | `t` / `T` | beetle on a low / high platform |
 | `n` / `N` | snail on a low / high platform |
+| `p` / `P` | Pink Ladybird on a low / high platform |
+| `g` / `G` | grasshopper on a low / high platform |
 
 The file must contain the same number of bugs and stars. Coordinates printed
 in solutions are one-based `(row,column)` coordinates.
