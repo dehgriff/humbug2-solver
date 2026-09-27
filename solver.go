@@ -33,7 +33,7 @@ func (m Move) String() string {
 
 type State struct {
 	Bugs  []Bug
-	Stars [BoardSize][BoardSize]bool
+	Stars [BoardSize][BoardSize]uint8
 }
 
 type searchNode struct {
@@ -253,8 +253,8 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 func consumeStars(s *State) {
 	kept := s.Bugs[:0]
 	for _, b := range s.Bugs {
-		if s.Stars[b.Pos.R][b.Pos.C] {
-			s.Stars[b.Pos.R][b.Pos.C] = false
+		if s.Stars[b.Pos.R][b.Pos.C] > 0 {
+			s.Stars[b.Pos.R][b.Pos.C]--
 			continue
 		}
 		kept = append(kept, b)
@@ -297,8 +297,9 @@ func stateKey(s State) string {
 	b.WriteByte('|')
 	for r := 0; r < BoardSize; r++ {
 		for c := 0; c < BoardSize; c++ {
-			if s.Stars[r][c] {
+			if s.Stars[r][c] > 0 {
 				b.WriteByte(byte(r*BoardSize + c + 1))
+				b.WriteByte(s.Stars[r][c])
 			}
 		}
 	}

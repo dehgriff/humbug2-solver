@@ -5,6 +5,7 @@ A bug must sit on a platform and occupies it. No two bugs can occupy the same pl
 If a bug moves to a square which does not contains a platform, it falls and the game is over.
 Each 'go' is to start a bug moving in one of the four cardinal directions (up, down, left, right), until it stops.
 Some platform squares can contains 'stars' - up to three.
+Each bug that stops on such a square consumes one star; any remaining stars stay on the platform for later bugs.
 The aim of the game is to move all the bugs on to a star.
 When a bug stops on a platform square with a star on it, the bug and the star disappear from the board.
 A bug may move over a square with a star on it. It only interacts with the star if it stops on that square.

@@ -41,6 +41,29 @@ func TestSnailIsNonFlying(t *testing.T) {
 	}
 }
 
+func TestMultipleStarsOnOnePlatformAreConsumedIndividually(t *testing.T) {
+	p := puzzle(t, "max-moves 6\n. . . . . . . . . .\n. . . . . . . . . .\nn n n *3 . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n")
+	star := Pos{2, 3}
+	if p.Stars[star.R][star.C] != 3 {
+		t.Fatalf("parsed star count = %d, want 3", p.Stars[star.R][star.C])
+	}
+	s := State{Stars: p.Stars}
+	for want := uint8(2); ; want-- {
+		s.Bugs = []Bug{{Kind: Snail, Pos: star}}
+		consumeStars(&s)
+		if len(s.Bugs) != 0 || s.Stars[star.R][star.C] != want {
+			t.Fatalf("after consumption: bugs=%v stars=%d, want 0 bugs and %d stars", s.Bugs, s.Stars[star.R][star.C], want)
+		}
+		if want == 0 {
+			break
+		}
+	}
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 6 {
+		t.Fatalf("stacked-star puzzle: ok=%v moves=%v", ok, moves)
+	}
+}
+
 func TestBeeFliesOverVoid(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..b.*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	m, ok := Solve(p)

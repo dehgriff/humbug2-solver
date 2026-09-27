@@ -55,7 +55,7 @@ type Bug struct {
 type Puzzle struct {
 	MaxMoves int
 	Terrain  [BoardSize][BoardSize]Terrain
-	Stars    [BoardSize][BoardSize]bool
+	Stars    [BoardSize][BoardSize]uint8
 	Bugs     []Bug
 }
 
@@ -104,33 +104,42 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	}
 	stars := 0
 	for r, row := range rows {
-		chars := []rune(row)
-		if len(chars) != BoardSize {
-			return p, fmt.Errorf("board row %d must have %d characters, got %d", r+1, BoardSize, len(chars))
+		cells := strings.Fields(row)
+		if len(cells) == 1 {
+			chars := []rune(row)
+			cells = make([]string, len(chars))
+			for i, ch := range chars {
+				cells[i] = string(ch)
+			}
 		}
-		for c, ch := range chars {
+		if len(cells) != BoardSize {
+			return p, fmt.Errorf("board row %d must have %d cells, got %d", r+1, BoardSize, len(cells))
+		}
+		for c, cell := range cells {
 			pos := Pos{r, c}
-			switch ch {
-			case '.':
+			switch cell {
+			case ".":
 				p.Terrain[r][c] = Void
-			case 'o':
+			case "o":
 				p.Terrain[r][c] = Low
-			case 'O':
+			case "O":
 				p.Terrain[r][c] = High
-			case '*':
-				p.Terrain[r][c], p.Stars[r][c] = Low, true
-				stars++
-			case '@':
-				p.Terrain[r][c], p.Stars[r][c] = High, true
-				stars++
-			case 'l', 'b', 's', 't', 'n':
+			case "*", "*1", "*2", "*3":
 				p.Terrain[r][c] = Low
-				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(ch), Pos: pos})
-			case 'L', 'B', 'S', 'T', 'N':
+				p.Stars[r][c] = starCount(cell)
+				stars += int(p.Stars[r][c])
+			case "@", "@1", "@2", "@3":
 				p.Terrain[r][c] = High
-				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(ch), Pos: pos})
+				p.Stars[r][c] = starCount(cell)
+				stars += int(p.Stars[r][c])
+			case "l", "b", "s", "t", "n":
+				p.Terrain[r][c] = Low
+				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
+			case "L", "B", "S", "T", "N":
+				p.Terrain[r][c] = High
+				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
 			default:
-				return p, fmt.Errorf("board row %d column %d: unknown character %q", r+1, c+1, ch)
+				return p, fmt.Errorf("board row %d column %d: unknown cell %q", r+1, c+1, cell)
 			}
 		}
 	}
@@ -141,6 +150,13 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		return p, fmt.Errorf("puzzle has %d bugs but %d stars", len(p.Bugs), stars)
 	}
 	return p, nil
+}
+
+func starCount(cell string) uint8 {
+	if len(cell) == 1 {
+		return 1
+	}
+	return cell[1] - '0'
 }
 
 func bugRune(ch rune) BugType {

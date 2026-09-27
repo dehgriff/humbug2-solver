@@ -29,7 +29,9 @@ Each board row is exactly ten characters:
 |---|---|
 | `.` | no platform |
 | `o` / `O` | low / high platform |
-| `*` / `@` | star on a low / high platform |
+| `*` / `@` | one star on a low / high platform |
+| `*2`, `*3` | two or three stars on a low platform (spaced rows only) |
+| `@2`, `@3` | two or three stars on a high platform (spaced rows only) |
 | `l` / `L` | ladybird on a low / high platform |
 | `b` / `B` | bee on a low / high platform |
 | `s` / `S` | spider on a low / high platform |
@@ -38,6 +40,17 @@ Each board row is exactly ten characters:
 
 The file must contain the same number of bugs and stars. Coordinates printed
 in solutions are one-based `(row,column)` coordinates.
+
+Rows containing only single-character cells can use the compact form shown
+above. To place multiple stars on one platform, write all ten cells separated
+by spaces. For example, this row has three stars on its fourth low platform:
+
+```text
+n n n *3 . . . . . .
+```
+
+Each bug that stops on `*2`, `*3`, `@2`, or `@3` consumes one star. The other
+stars remain available to subsequent bugs.
 
 ## Run
 
