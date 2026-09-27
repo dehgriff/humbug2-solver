@@ -43,6 +43,7 @@ Each board row is exactly ten characters:
 | `f` / `F` | butterfly on a low / high platform |
 | `c` / `C` | cockroach on a low / high platform |
 | `d` / `D` | Gold Beetle on a low / high platform |
+| `u` / `U` | puck on a low / high platform |
 
 The file must contain the same number of bugs and stars. Coordinates printed
 in solutions are one-based `(row,column)` coordinates.
@@ -106,6 +107,14 @@ An egg cannot initiate a move, but it can be pushed and otherwise occupies its
 platform like a bug. When another bug lands on it in landing mode, the landing
 bug bounces onward and the egg hatches into its normal bug type. The hatched
 bug can move on subsequent turns. Egg status travels with a pushed bug.
+
+### Pucks
+
+Use `u` for a puck on a low platform and `U` for one on a high platform. Pucks
+occupy platforms but cannot initiate moves. They can be pushed, serve as bounce
+obstacles, and bounce from trampolines like bugs. They never consume stars and
+do not count toward winning the puzzle. If a pushed puck falls into a square
+without a platform or leaves the board, it disappears and play continues.
 
 ## Run
 

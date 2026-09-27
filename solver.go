@@ -47,7 +47,7 @@ type searchNode struct {
 func Solve(p Puzzle) ([]Move, bool) {
 	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&start)
-	if len(start.Bugs) == 0 {
+	if remainingBugCount(start) == 0 {
 		return nil, true
 	}
 	nodes := []searchNode{{state: start, parent: -1}}
@@ -58,7 +58,7 @@ func Solve(p Puzzle) ([]Move, bool) {
 			continue
 		}
 		for i := range cur.state.Bugs {
-			if cur.state.Bugs[i].Egg {
+			if cur.state.Bugs[i].Egg || cur.state.Bugs[i].Kind == Puck {
 				continue
 			}
 			for _, dir := range directions {
@@ -66,7 +66,7 @@ func Solve(p Puzzle) ([]Move, bool) {
 				if !ok { // includes blocked/no-op and falling branches
 					continue
 				}
-				if len(next.Bugs) == 0 {
+				if remainingBugCount(next) == 0 {
 					return buildPath(nodes, head, move), true
 				}
 				key := stateKey(next)
@@ -92,7 +92,7 @@ func buildPath(nodes []searchNode, parent int, last Move) []Move {
 }
 
 func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool) {
-	if old.Bugs[index].Egg {
+	if old.Bugs[index].Egg || old.Bugs[index].Kind == Puck {
 		return State{}, Move{}, false
 	}
 	s := cloneState(old)
@@ -132,6 +132,7 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 		knockDownWalls(&s.Walls, from, to, dir)
 	}
 	s.Bugs[index].Pos = to
+	removeFallenPucks(&s)
 	consumeStars(&s)
 	canonicalize(&s)
 	return s, Move{Kind: bug.Kind, From: from, Dir: dir, To: to}, true
@@ -260,6 +261,11 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 			return start, false, false
 		}
 		if !inside(dest) || p.Terrain[dest.R][dest.C] == Void {
+			if s.Bugs[j].Kind == Puck {
+				movePushChain(s, chain[:len(chain)-1], dir, cur)
+				s.Bugs[j].Pos = Pos{-1, -1}
+				return next, true, false
+			}
 			return Pos{}, false, true
 		}
 		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[dest.R][dest.C] == High {
@@ -272,6 +278,12 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		var ok, fell bool
 		landing, ok, fell = land(p, cur, dir, occ, false, s.Bugs)
 		if fell || !ok {
+			last := chain[len(chain)-1]
+			if fell && s.Bugs[last].Kind == Puck {
+				movePushChain(s, chain[:len(chain)-1], dir, s.Bugs[last].Pos)
+				s.Bugs[last].Pos = Pos{-1, -1}
+				return next, true, false
+			}
 			return Pos{}, false, fell
 		}
 	}
@@ -312,6 +324,12 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 	}
 	landing, ok, fell := land(p, cur, dir, occ, false, s.Bugs)
 	if fell || !ok {
+		last := chain[len(chain)-1]
+		if fell && s.Bugs[last].Kind == Puck {
+			movePushChain(s, chain[:len(chain)-1], dir, s.Bugs[last].Pos)
+			s.Bugs[last].Pos = Pos{-1, -1}
+			return next, true, false
+		}
 		return Pos{}, false, fell
 	}
 	for i := 0; i < len(chain)-1; i++ {
@@ -322,6 +340,9 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 }
 
 func movePushChain(s *State, chain []int, dir Direction, lastLanding Pos) {
+	if len(chain) == 0 {
+		return
+	}
 	for i := 0; i < len(chain)-1; i++ {
 		s.Bugs[chain[i]].Pos = add(s.Bugs[chain[i]].Pos, deltas[dir])
 	}
@@ -331,13 +352,33 @@ func movePushChain(s *State, chain []int, dir Direction, lastLanding Pos) {
 func consumeStars(s *State) {
 	kept := s.Bugs[:0]
 	for _, b := range s.Bugs {
-		if s.Stars[b.Pos.R][b.Pos.C] > 0 {
+		if b.Kind != Puck && s.Stars[b.Pos.R][b.Pos.C] > 0 {
 			s.Stars[b.Pos.R][b.Pos.C]--
 			continue
 		}
 		kept = append(kept, b)
 	}
 	s.Bugs = kept
+}
+
+func removeFallenPucks(s *State) {
+	kept := s.Bugs[:0]
+	for _, b := range s.Bugs {
+		if b.Kind != Puck || inside(b.Pos) {
+			kept = append(kept, b)
+		}
+	}
+	s.Bugs = kept
+}
+
+func remainingBugCount(s State) int {
+	count := 0
+	for _, b := range s.Bugs {
+		if b.Kind != Puck {
+			count++
+		}
+	}
+	return count
 }
 
 func occupancy(bugs []Bug) map[Pos]int {

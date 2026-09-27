@@ -206,6 +206,81 @@ func TestRejectEggWithoutBug(t *testing.T) {
 	}
 }
 
+func TestPuckDoesNotNeedToFinishOrConsumeStar(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..n*u.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].Kind != Snail {
+		t.Fatalf("puck should not prevent victory: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestFlyingBugBouncesOnPuck(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..gu*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].To != (Pos{2, 4}) {
+		t.Fatalf("grasshopper should bounce on puck: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestPuckBouncesFromTrampolineWithoutConsumingStar(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..tux*....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok || len(next.Bugs) != 2 {
+		t.Fatalf("puck trampoline push failed: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+	star := Pos{2, 5}
+	if next.Stars[star.R][star.C] != 1 {
+		t.Fatal("puck consumed a star")
+	}
+	found := false
+	for _, b := range next.Bugs {
+		if b.Kind == Puck && b.Pos == star {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("puck did not bounce onto star: %+v", next.Bugs)
+	}
+}
+
+func TestPushedPuckCanFallOffBoard(t *testing.T) {
+	p := puzzle(t, "max-moves 2\n..........\n..........\n........tu\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle || next.Bugs[0].Pos != (Pos{2, 9}) {
+		t.Fatalf("puck fall should leave beetle in play: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+}
+
+func TestPuckCannotInitiateMove(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..n*u.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	var puckIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Puck {
+			puckIndex = i
+		}
+	}
+	if _, _, ok := applyMove(p, s, puckIndex, Right); ok {
+		t.Fatal("puck initiated a move")
+	}
+}
+
 func TestWalkingBugBouncesAsSoonAsItCrossesTrampoline(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n.px*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	moves, ok := Solve(p)

@@ -23,6 +23,7 @@ const (
 	Butterfly    BugType = 'F'
 	Cockroach    BugType = 'C'
 	GoldBeetle   BugType = 'D'
+	Puck         BugType = 'U'
 )
 
 func (b BugType) String() string {
@@ -47,6 +48,8 @@ func (b BugType) String() string {
 		return "cockroach"
 	case GoldBeetle:
 		return "gold beetle"
+	case Puck:
+		return "puck"
 	default:
 		return "unknown"
 	}
@@ -167,10 +170,10 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c] = High
 				p.Stars[r][c] = starCount(cell)
 				stars += int(p.Stars[r][c])
-			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d":
+			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u":
 				p.Terrain[r][c] = Low
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
-			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D":
+			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D", "U":
 				p.Terrain[r][c] = High
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
 			default:
@@ -178,11 +181,17 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			}
 		}
 	}
-	if len(p.Bugs) == 0 {
+	bugCount := 0
+	for _, bug := range p.Bugs {
+		if bug.Kind != Puck {
+			bugCount++
+		}
+	}
+	if bugCount == 0 {
 		return p, fmt.Errorf("puzzle must contain at least one bug")
 	}
-	if stars != len(p.Bugs) {
-		return p, fmt.Errorf("puzzle has %d bugs but %d stars", len(p.Bugs), stars)
+	if stars != bugCount {
+		return p, fmt.Errorf("puzzle has %d bugs but %d stars", bugCount, stars)
 	}
 	for _, line := range directiveLines {
 		fields := strings.Fields(line.text)
@@ -195,6 +204,9 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			found := false
 			for i := range p.Bugs {
 				if p.Bugs[i].Pos == (Pos{r - 1, c - 1}) {
+					if p.Bugs[i].Kind == Puck {
+						return p, fmt.Errorf("line %d: a puck cannot be an egg", line.number)
+					}
 					if p.Bugs[i].Egg {
 						return p, fmt.Errorf("line %d: bug is already marked as an egg", line.number)
 					}
@@ -282,7 +294,9 @@ func bugRune(ch rune) BugType {
 		return Butterfly
 	case 'c', 'C':
 		return Cockroach
-	default:
+	case 'd', 'D':
 		return GoldBeetle
+	default:
+		return Puck
 	}
 }
