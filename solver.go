@@ -121,12 +121,12 @@ func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int) (Po
 		if !inside(next) || p.Terrain[next.R][next.C] == Void {
 			return Pos{}, false, true
 		}
-		if _, blocked := occupied[next]; blocked || (p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High) {
-			return cur, cur != bug.Pos, false
-		}
 		// Dropping from high to low changes to landing/bounce behaviour.
 		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
 			return land(p, next, dir, occupied)
+		}
+		if _, blocked := occupied[next]; blocked || (p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High) {
+			return cur, cur != bug.Pos, false
 		}
 		cur = next
 	}
@@ -160,11 +160,11 @@ func spider(p Puzzle, bug Bug, dir Direction, occupied map[Pos]int) (Pos, bool, 
 		if !inside(next) || p.Terrain[next.R][next.C] == Void {
 			return Pos{}, false, true
 		}
-		if _, blocked := occupied[next]; blocked || (p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High) {
-			return cur, cur != bug.Pos, false
-		}
 		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
 			return land(p, next, dir, occupied)
+		}
+		if _, blocked := occupied[next]; blocked || (p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High) {
+			return cur, cur != bug.Pos, false
 		}
 		cur = next
 	}
@@ -180,15 +180,18 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		return start, false, false
 	}
 	occ := occupancy(s.Bugs)
+	if p.Terrain[start.R][start.C] == High && p.Terrain[next.R][next.C] == Low {
+		delete(occ, start)
+		return land(p, next, dir, occ)
+	}
 	if _, taken := occ[next]; !taken {
-		if p.Terrain[start.R][start.C] == High && p.Terrain[next.R][next.C] == Low {
-			delete(occ, start)
-			return land(p, next, dir, occ)
-		}
 		return next, true, false
 	}
+	if p.Terrain[start.R][start.C] == High {
+		return highBeetlePush(p, s, start, next, dir, occ)
+	}
 	// Find the whole contiguous chain and validate its destination before
-	// changing anything. Each pushed bug obeys the low-to-high restriction.
+	// changing anything. This is a low-level chain, so a high platform blocks it.
 	chain := []int{}
 	cur := next
 	for {
@@ -209,6 +212,39 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	for i := len(chain) - 1; i >= 0; i-- {
 		s.Bugs[chain[i]].Pos = add(s.Bugs[chain[i]].Pos, deltas[dir])
 	}
+	return next, true, false
+}
+
+// highBeetlePush pushes only bugs standing at the beetle's high level. When
+// the last one is pushed over an edge onto a low platform, that bug enters
+// landing mode: it lands if the square is free or bounces over occupants.
+func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[Pos]int) (Pos, bool, bool) {
+	chain := []int{}
+	cur := next
+	for inside(cur) && p.Terrain[cur.R][cur.C] == High {
+		j, taken := occ[cur]
+		if !taken {
+			for i := len(chain) - 1; i >= 0; i-- {
+				s.Bugs[chain[i]].Pos = add(s.Bugs[chain[i]].Pos, deltas[dir])
+			}
+			return next, true, false
+		}
+		chain = append(chain, j)
+		cur = add(cur, deltas[dir])
+	}
+	if len(chain) == 0 {
+		// The adjacent bug is on a low platform, so it is not at the high
+		// beetle's level and cannot be pushed.
+		return start, false, false
+	}
+	landing, ok, fell := land(p, cur, dir, occ)
+	if fell || !ok {
+		return Pos{}, false, fell
+	}
+	for i := 0; i < len(chain)-1; i++ {
+		s.Bugs[chain[i]].Pos = add(s.Bugs[chain[i]].Pos, deltas[dir])
+	}
+	s.Bugs[chain[len(chain)-1]].Pos = landing
 	return next, true, false
 }
 

@@ -59,9 +59,12 @@ implicit, it uses these interpretations:
 - walking bugs fall as soon as they enter a square without a platform;
 - a bee ignores terrain while flying, then bounces over occupied landing
   platforms; a missing landing platform causes it to fall;
+- a bouncing bug can land on either a low or a high platform;
 - a blocked move that travels zero squares is not a move;
 - every bug that comes to rest on a star disappears, including a pushed bug;
 - pushed bugs must obey the low-to-high restriction, while a push into a void
   is a losing branch;
+- a beetle on a high platform can push only bugs on contiguous high platforms;
+  the final pushed bug enters landing mode if it drops to a low platform;
 - after a non-flying bug drops from high to low, it is in landing mode and
   bounces forward over occupied platforms, as specified by the rules.

@@ -30,6 +30,48 @@ func TestBeeFliesOverVoid(t *testing.T) {
 	}
 }
 
+func TestBounceCanLandOnHighPlatform(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.b.l@.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	canonicalize(&s)
+	var beeIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Bee {
+			beeIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beeIndex, Right)
+	if !ok {
+		t.Fatal("bee should bounce from the occupied low platform onto the high platform")
+	}
+	if len(next.Bugs) != 1 {
+		t.Fatalf("bee should disappear on the high-platform star: %+v", next.Bugs)
+	}
+	if next.Bugs[0].Kind != Ladybird || next.Bugs[0].Pos != (Pos{2, 3}) {
+		t.Fatalf("the bug that caused the bounce should not move: %+v", next.Bugs)
+	}
+}
+
+func TestWalkingBugDropsOntoBugAndBouncesToHighPlatform(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..........\n..LlO*....\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	canonicalize(&s)
+	var highLadybird int
+	for i, b := range s.Bugs {
+		if b.Kind == Ladybird && p.Terrain[b.Pos.R][b.Pos.C] == High {
+			highLadybird = i
+		}
+	}
+	next, _, ok := applyMove(p, s, highLadybird, Right)
+	if !ok {
+		t.Fatal("high ladybird should enter landing mode, bounce, and land high")
+	}
+	positions := occupancy(next.Bugs)
+	if _, ok := positions[Pos{3, 4}]; !ok {
+		t.Fatalf("ladybird did not bounce onto high platform: %+v", next.Bugs)
+	}
+}
+
 func TestSpiderStopsAtBug(t *testing.T) {
 	p := puzzle(t, "max-moves 2\n..........\n..........\n.toos*....\n..........\n..........\n..........\n..........\n..........\n..........\n.....*....\n")
 	// The parser validation is what matters here; use direct movement to avoid
@@ -76,6 +118,51 @@ func TestBeetlePushesChainOntoStar(t *testing.T) {
 	}
 	if len(next.Bugs) != 2 {
 		t.Fatalf("pushed bug on star was not removed: %+v", next.Bugs)
+	}
+}
+
+func TestHighBeetlePushDropsLastBugIntoLandingMode(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..TLl*....\n..........\n..........\n..........\n..........\n..........\n......**..\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok {
+		t.Fatal("high push and landing bounce should be valid")
+	}
+	if len(next.Bugs) != 2 {
+		t.Fatalf("high bug should bounce over low bug and disappear on star: %+v", next.Bugs)
+	}
+	positions := occupancy(next.Bugs)
+	if _, ok := positions[Pos{2, 3}]; !ok {
+		t.Fatalf("beetle did not move into vacated high platform: %+v", next.Bugs)
+	}
+	if _, ok := positions[Pos{2, 4}]; !ok {
+		t.Fatalf("low-level bug should not have been pushed: %+v", next.Bugs)
+	}
+}
+
+func TestHighBeetleBouncesOverRatherThanPushesLowBug(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..Tl*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok {
+		t.Fatal("high beetle should enter landing mode")
+	}
+	if len(next.Bugs) != 1 || next.Bugs[0].Kind != Ladybird || next.Bugs[0].Pos != (Pos{2, 3}) {
+		t.Fatalf("high beetle should bounce over, not push, the low bug: %+v", next.Bugs)
 	}
 }
 
