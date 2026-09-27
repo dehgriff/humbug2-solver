@@ -26,6 +26,7 @@ A 'push' (e.g. from a beetle) can push a chain of bugs in the chosen direction, 
 If a beetle is on a high platform, it can only push bugs that are on high platforms at the same level.
 If a bug is pushed from a high platform to a low platform, that bug enters landing mode: it lands on an unoccupied platform or bounces forward over an occupied platform.
 A platform may be a 'high' platform. These are higher than regular 'low' platforms.
+A wall may stand at the boundary between two adjacent squares, at least one of which is a platform. A wall blocks non-flying bugs from crossing that boundary, regardless of platform height. Flying bugs can cross walls during flight and while bouncing.
 A flying bug may fly freely between low and high platforms. However, a non-flying bug cannot move onto a high platform from a low platform.
 If a non-flying bug attempts to move onto a high platform from a low platform, the high platform acts as an obstacle and prevents the bug from moving onto it.
 If a non-flying bug attempts to move from a high platform to a low platform, it can do so. When it lands on the lower platform, this is equivalient in behaviour to a flying bug landing on the platform - i.e. if it is unoccupied the bug successfully lands and stops there, but if it is occupied, the bug will 'bounce' and will try to 'land' on the next square in the same direction.

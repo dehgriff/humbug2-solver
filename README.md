@@ -52,6 +52,23 @@ n n n *3 . . . . . .
 Each bug that stops on `*2`, `*3`, `@2`, or `@3` consumes one star. The other
 stars remain available to subsequent bugs.
 
+### Walls
+
+Walls are listed after the ten board rows using one-based coordinates and a
+direction from that square:
+
+```text
+walls:
+wall 3 4 right
+wall 6 7 up
+```
+
+`wall 3 4 right` places a wall between `(3,4)` and `(3,5)`; spelling the same
+wall as `wall 3 5 left` has identical behavior. At least one of the two squares
+must contain a platform. A wall blocks walking, landing, and pushed non-flying
+bugs. Flying bugs ignore walls during both their initial flight and subsequent
+bounces. Low and high platform levels do not affect walls.
+
 ## Run
 
 Requires Go 1.22 or newer.

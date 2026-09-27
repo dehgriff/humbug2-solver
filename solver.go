@@ -119,13 +119,16 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int) (Pos, bool, bool) {
 	cur := bug.Pos
 	for step := 0; step < limit; step++ {
+		if hasWall(p, cur, dir) {
+			return cur, cur != bug.Pos, false
+		}
 		next := add(cur, deltas[dir])
 		if !inside(next) || p.Terrain[next.R][next.C] == Void {
 			return Pos{}, false, true
 		}
 		// Dropping from high to low changes to landing/bounce behaviour.
 		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
-			return land(p, next, dir, occupied)
+			return land(p, next, dir, occupied, false)
 		}
 		if _, blocked := occupied[next]; blocked || (p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High) {
 			return cur, cur != bug.Pos, false
@@ -140,16 +143,19 @@ func fly(p Puzzle, start Pos, dir Direction, distance int, occupied map[Pos]int)
 	for i := 0; i < distance; i++ {
 		landing = add(landing, deltas[dir])
 	}
-	return land(p, landing, dir, occupied)
+	return land(p, landing, dir, occupied, true)
 }
 
-func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
+func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int, crossesWalls bool) (Pos, bool, bool) {
 	for {
 		if !inside(landing) || p.Terrain[landing.R][landing.C] == Void {
 			return Pos{}, false, true
 		}
 		if _, taken := occupied[landing]; !taken {
 			return landing, true, false
+		}
+		if !crossesWalls && hasWall(p, landing, dir) {
+			return Pos{}, false, false
 		}
 		landing = add(landing, deltas[dir])
 	}
@@ -158,12 +164,15 @@ func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int) (Pos, bool
 func spider(p Puzzle, bug Bug, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
 	cur := bug.Pos
 	for {
+		if hasWall(p, cur, dir) {
+			return cur, cur != bug.Pos, false
+		}
 		next := add(cur, deltas[dir])
 		if !inside(next) || p.Terrain[next.R][next.C] == Void {
 			return Pos{}, false, true
 		}
 		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
-			return land(p, next, dir, occupied)
+			return land(p, next, dir, occupied, false)
 		}
 		if _, blocked := occupied[next]; blocked || (p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High) {
 			return cur, cur != bug.Pos, false
@@ -174,6 +183,9 @@ func spider(p Puzzle, bug Bug, dir Direction, occupied map[Pos]int) (Pos, bool, 
 
 func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	start := s.Bugs[index].Pos
+	if hasWall(p, start, dir) {
+		return start, false, false
+	}
 	next := add(start, deltas[dir])
 	if !inside(next) || p.Terrain[next.R][next.C] == Void {
 		return Pos{}, false, true
@@ -184,7 +196,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	occ := occupancy(s.Bugs)
 	if p.Terrain[start.R][start.C] == High && p.Terrain[next.R][next.C] == Low {
 		delete(occ, start)
-		return land(p, next, dir, occ)
+		return land(p, next, dir, occ, false)
 	}
 	if _, taken := occ[next]; !taken {
 		return next, true, false
@@ -203,6 +215,9 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		}
 		chain = append(chain, j)
 		dest := add(cur, deltas[dir])
+		if hasWall(p, cur, dir) {
+			return start, false, false
+		}
 		if !inside(dest) || p.Terrain[dest.R][dest.C] == Void {
 			return Pos{}, false, true
 		}
@@ -232,6 +247,9 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			return next, true, false
 		}
 		chain = append(chain, j)
+		if hasWall(p, cur, dir) {
+			return start, false, false
+		}
 		cur = add(cur, deltas[dir])
 	}
 	if len(chain) == 0 {
@@ -239,7 +257,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 		// beetle's level and cannot be pushed.
 		return start, false, false
 	}
-	landing, ok, fell := land(p, cur, dir, occ)
+	landing, ok, fell := land(p, cur, dir, occ, false)
 	if fell || !ok {
 		return Pos{}, false, fell
 	}
@@ -308,3 +326,7 @@ func stateKey(s State) string {
 
 func add(a, b Pos) Pos  { return Pos{a.R + b.R, a.C + b.C} }
 func inside(p Pos) bool { return p.R >= 0 && p.R < BoardSize && p.C >= 0 && p.C < BoardSize }
+
+func hasWall(p Puzzle, from Pos, dir Direction) bool {
+	return inside(from) && p.Walls[from.R][from.C]&(1<<dir) != 0
+}

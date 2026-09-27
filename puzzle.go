@@ -56,6 +56,7 @@ type Puzzle struct {
 	MaxMoves int
 	Terrain  [BoardSize][BoardSize]Terrain
 	Stars    [BoardSize][BoardSize]uint8
+	Walls    [BoardSize][BoardSize]uint8
 	Bugs     []Bug
 }
 
@@ -69,6 +70,11 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	s := bufio.NewScanner(r)
 	lineNo := 0
 	rows := make([]string, 0, BoardSize)
+	type sourceLine struct {
+		number int
+		text   string
+	}
+	var wallLines []sourceLine
 	for s.Scan() {
 		lineNo++
 		line := strings.TrimSpace(s.Text())
@@ -91,7 +97,14 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		if strings.EqualFold(strings.TrimSuffix(line, ":"), "board") && len(rows) == 0 {
 			continue
 		}
-		rows = append(rows, line)
+		if len(rows) < BoardSize {
+			rows = append(rows, line)
+			continue
+		}
+		if strings.EqualFold(strings.TrimSuffix(line, ":"), "walls") {
+			continue
+		}
+		wallLines = append(wallLines, sourceLine{number: lineNo, text: line})
 	}
 	if err := s.Err(); err != nil {
 		return p, err
@@ -149,8 +162,50 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	if stars != len(p.Bugs) {
 		return p, fmt.Errorf("puzzle has %d bugs but %d stars", len(p.Bugs), stars)
 	}
+	for _, line := range wallLines {
+		fields := strings.Fields(line.text)
+		if len(fields) != 4 || !strings.EqualFold(fields[0], "wall") {
+			return p, fmt.Errorf("line %d: expected 'wall ROW COLUMN DIRECTION'", line.number)
+		}
+		r, errR := strconv.Atoi(fields[1])
+		c, errC := strconv.Atoi(fields[2])
+		dir, ok := parseDirection(fields[3])
+		if errR != nil || errC != nil || !ok || r < 1 || r > BoardSize || c < 1 || c > BoardSize {
+			return p, fmt.Errorf("line %d: invalid wall position or direction", line.number)
+		}
+		from := Pos{r - 1, c - 1}
+		to := Pos{from.R + wallDR[dir], from.C + wallDC[dir]}
+		if to.R < 0 || to.R >= BoardSize || to.C < 0 || to.C >= BoardSize {
+			return p, fmt.Errorf("line %d: wall must be between two board squares", line.number)
+		}
+		if p.Terrain[from.R][from.C] == Void && p.Terrain[to.R][to.C] == Void {
+			return p, fmt.Errorf("line %d: at least one side of a wall must be a platform", line.number)
+		}
+		p.Walls[from.R][from.C] |= 1 << dir
+		p.Walls[to.R][to.C] |= 1 << oppositeWallDirection(dir)
+	}
 	return p, nil
 }
+
+var wallDR = [4]int{-1, 0, 1, 0}
+var wallDC = [4]int{0, 1, 0, -1}
+
+func parseDirection(value string) (int, bool) {
+	switch strings.ToLower(value) {
+	case "up":
+		return 0, true
+	case "right":
+		return 1, true
+	case "down":
+		return 2, true
+	case "left":
+		return 3, true
+	default:
+		return 0, false
+	}
+}
+
+func oppositeWallDirection(dir int) int { return (dir + 2) % 4 }
 
 func starCount(cell string) uint8 {
 	if len(cell) == 1 {

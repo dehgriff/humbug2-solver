@@ -64,6 +64,51 @@ func TestMultipleStarsOnOnePlatformAreConsumedIndividually(t *testing.T) {
 	}
 }
 
+func TestWallStopsLadybirdOnStar(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..l*o.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwalls:\nwall 3 4 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 {
+		t.Fatalf("wall-stopped puzzle: ok=%v moves=%v", ok, moves)
+	}
+	if moves[0].To != (Pos{2, 3}) {
+		t.Fatalf("ladybird crossed wall: %+v", moves[0])
+	}
+	if !hasWall(p, Pos{2, 3}, Right) || !hasWall(p, Pos{2, 4}, Left) {
+		t.Fatal("wall was not stored on both sides of its boundary")
+	}
+}
+
+func TestFlyingBugCrossesWall(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..bo*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 3 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].To != (Pos{2, 4}) {
+		t.Fatalf("bee should fly through wall: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestFlyingBugBouncesAcrossWall(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..b.l@....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 5 right\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	canonicalize(&s)
+	var beeIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Bee {
+			beeIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beeIndex, Right)
+	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Ladybird {
+		t.Fatalf("bee should bounce across wall onto star: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+}
+
+func TestRejectWallBetweenTwoVoidSquares(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 1 1 right\n"))
+	if err == nil {
+		t.Fatal("expected wall validation error")
+	}
+}
+
 func TestBeeFliesOverVoid(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..b.*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	m, ok := Solve(p)
