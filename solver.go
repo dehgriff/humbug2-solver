@@ -34,6 +34,7 @@ func (m Move) String() string {
 type State struct {
 	Bugs  []Bug
 	Stars [BoardSize][BoardSize]uint8
+	Walls [BoardSize][BoardSize]uint8
 }
 
 type searchNode struct {
@@ -44,7 +45,7 @@ type searchNode struct {
 }
 
 func Solve(p Puzzle) ([]Move, bool) {
-	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars}
+	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&start)
 	if len(start.Bugs) == 0 {
 		return nil, true
@@ -89,6 +90,7 @@ func buildPath(nodes []searchNode, parent int, last Move) []Move {
 
 func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool) {
 	s := cloneState(old)
+	p.Walls = s.Walls
 	bug := s.Bugs[index]
 	from := bug.Pos
 	occupied := occupancy(s.Bugs)
@@ -110,6 +112,8 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 		to, ok, fell = walk(p, bug, dir, 1, occupied, false)
 	case Cockroach:
 		to, ok, fell = walk(p, bug, dir, 2, occupied, true)
+	case GoldBeetle:
+		to, ok, fell = walk(p, bug, dir, 2, occupied, true)
 	case Spider:
 		to, ok, fell = spider(p, bug, dir, occupied)
 	case Beetle:
@@ -117,6 +121,16 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	}
 	if fell || !ok || to == from {
 		return State{}, Move{}, false
+	}
+	if bug.Kind == GoldBeetle {
+		knockDownWalls(&s.Walls, from, to, dir)
+	}
+	if bug.Kind == Beetle {
+		for i := range s.Bugs {
+			if s.Bugs[i].Kind == GoldBeetle && s.Bugs[i].Pos != old.Bugs[i].Pos {
+				knockDownWalls(&s.Walls, old.Bugs[i].Pos, s.Bugs[i].Pos, dir)
+			}
+		}
 	}
 	s.Bugs[index].Pos = to
 	consumeStars(&s)
@@ -240,7 +254,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		}
 		chain = append(chain, j)
 		dest := add(cur, deltas[dir])
-		if s.Bugs[j].Kind != Cockroach && hasWall(p, cur, dir) {
+		if !ignoresWalls(s.Bugs[j].Kind) && hasWall(p, cur, dir) {
 			return start, false, false
 		}
 		if !inside(dest) || p.Terrain[dest.R][dest.C] == Void {
@@ -254,7 +268,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	landing := cur
 	if p.Trampolines[cur.R][cur.C] {
 		var ok, fell bool
-		landing, ok, fell = land(p, cur, dir, occ, s.Bugs[chain[len(chain)-1]].Kind == Cockroach)
+		landing, ok, fell = land(p, cur, dir, occ, ignoresWalls(s.Bugs[chain[len(chain)-1]].Kind))
 		if fell || !ok {
 			return Pos{}, false, fell
 		}
@@ -275,7 +289,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			landing := cur
 			if p.Trampolines[cur.R][cur.C] {
 				var ok, fell bool
-				landing, ok, fell = land(p, cur, dir, occ, s.Bugs[chain[len(chain)-1]].Kind == Cockroach)
+				landing, ok, fell = land(p, cur, dir, occ, ignoresWalls(s.Bugs[chain[len(chain)-1]].Kind))
 				if fell || !ok {
 					return Pos{}, false, fell
 				}
@@ -284,7 +298,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			return next, true, false
 		}
 		chain = append(chain, j)
-		if s.Bugs[j].Kind != Cockroach && hasWall(p, cur, dir) {
+		if !ignoresWalls(s.Bugs[j].Kind) && hasWall(p, cur, dir) {
 			return start, false, false
 		}
 		cur = add(cur, deltas[dir])
@@ -294,7 +308,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 		// beetle's level and cannot be pushed.
 		return start, false, false
 	}
-	landing, ok, fell := land(p, cur, dir, occ, s.Bugs[chain[len(chain)-1]].Kind == Cockroach)
+	landing, ok, fell := land(p, cur, dir, occ, ignoresWalls(s.Bugs[chain[len(chain)-1]].Kind))
 	if fell || !ok {
 		return Pos{}, false, fell
 	}
@@ -365,6 +379,12 @@ func stateKey(s State) string {
 			}
 		}
 	}
+	b.WriteByte('|')
+	for r := 0; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			b.WriteByte(s.Walls[r][c])
+		}
+	}
 	return b.String()
 }
 
@@ -373,4 +393,18 @@ func inside(p Pos) bool { return p.R >= 0 && p.R < BoardSize && p.C >= 0 && p.C 
 
 func hasWall(p Puzzle, from Pos, dir Direction) bool {
 	return inside(from) && p.Walls[from.R][from.C]&(1<<dir) != 0
+}
+
+func ignoresWalls(kind BugType) bool { return kind == Cockroach || kind == GoldBeetle }
+
+func knockDownWalls(walls *[BoardSize][BoardSize]uint8, from, to Pos, dir Direction) {
+	cur := from
+	for cur != to {
+		next := add(cur, deltas[dir])
+		walls[cur.R][cur.C] &^= 1 << dir
+		if inside(next) {
+			walls[next.R][next.C] &^= 1 << Direction((int(dir)+2)%4)
+		}
+		cur = next
+	}
 }

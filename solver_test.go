@@ -89,7 +89,7 @@ func TestCockroachStillCannotClimb(t *testing.T) {
 
 func TestPushedCockroachPassesUnderWall(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..tc*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 4 right\n")
-	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&s)
 	var beetleIndex int
 	for i, b := range s.Bugs {
@@ -100,6 +100,46 @@ func TestPushedCockroachPassesUnderWall(t *testing.T) {
 	next, _, ok := applyMove(p, s, beetleIndex, Right)
 	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle {
 		t.Fatalf("pushed cockroach should pass under wall onto star: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+}
+
+func TestGoldBeetleMovesTwoSquaresAndKnocksDownWalls(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..do*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 3 right\nwall 3 4 right\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	next, move, ok := applyMove(p, s, 0, Right)
+	if !ok || move.Kind != GoldBeetle || move.To != (Pos{2, 4}) || len(next.Bugs) != 0 {
+		t.Fatalf("unexpected Gold Beetle move: ok=%v move=%+v bugs=%+v", ok, move, next.Bugs)
+	}
+	if next.Walls[2][2] != 0 || next.Walls[2][3] != 0 || next.Walls[2][4] != 0 {
+		t.Fatalf("crossed walls were not removed: %+v", next.Walls[2])
+	}
+}
+
+func TestPushedGoldBeetleKnocksDownWall(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..td*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 4 right\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle {
+		t.Fatalf("pushed Gold Beetle should cross wall onto star: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+	if hasWall(Puzzle{Walls: next.Walls}, Pos{2, 3}, Right) {
+		t.Fatal("pushed Gold Beetle did not knock down wall")
+	}
+}
+
+func TestWallLayoutIsPartOfSearchState(t *testing.T) {
+	a := State{}
+	b := State{}
+	b.Walls[2][3] = 1 << Right
+	if stateKey(a) == stateKey(b) {
+		t.Fatal("states with different remaining walls must have different keys")
 	}
 }
 

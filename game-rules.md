@@ -27,6 +27,7 @@ After bouncing from another bug, the next landing platform may be either low or 
 A 'spider' keeps moving in the direction it is started for as many squares as possible until it hits an obstacle, or falls off the board.
 A 'beetle' moves one square in the chosen direction per 'go', and will 'push' bugs that are in its path to the next square, if possible.
 A 'cockroach' is non-flying and moves two squares in the chosen direction per 'go'. Walls have no effect on cockroaches, including while they are landing, bouncing, or being pushed.
+A 'gold beetle' is non-flying and moves two squares in the chosen direction per 'go'. It can pass through walls and permanently knocks down every wall it crosses, including while landing, bouncing, or being pushed.
 A 'push' (e.g. from a beetle) can push a chain of bugs in the chosen direction, if there is space for all of them to shuffle up one square.
 If a beetle is on a high platform, it can only push bugs that are on high platforms at the same level.
 If a bug is pushed from a high platform to a low platform, that bug enters landing mode: it lands on an unoccupied platform or bounces forward over an occupied platform.
