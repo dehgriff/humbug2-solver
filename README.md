@@ -91,6 +91,22 @@ platform, such as `wall 1 1 up`. A wall blocks walking, landing, and pushed non-
 bugs. Flying bugs ignore walls during both their initial flight and subsequent
 bounces. Low and high platform levels do not affect walls.
 
+### Eggs
+
+Any bug placed on the board can start as an egg. List eggs after the board with
+one-based coordinates that identify an existing bug:
+
+```text
+eggs:
+egg 3 4
+egg 7 2
+```
+
+An egg cannot initiate a move, but it can be pushed and otherwise occupies its
+platform like a bug. When another bug lands on it in landing mode, the landing
+bug bounces onward and the egg hatches into its normal bug type. The hatched
+bug can move on subsequent turns. Egg status travels with a pushed bug.
+
 ## Run
 
 Requires Go 1.22 or newer.

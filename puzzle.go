@@ -65,6 +65,7 @@ type Pos struct{ R, C int }
 type Bug struct {
 	Kind BugType
 	Pos  Pos
+	Egg  bool
 }
 
 type Puzzle struct {
@@ -90,7 +91,7 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		number int
 		text   string
 	}
-	var wallLines []sourceLine
+	var directiveLines []sourceLine
 	for s.Scan() {
 		lineNo++
 		line := strings.TrimSpace(s.Text())
@@ -117,10 +118,11 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			rows = append(rows, line)
 			continue
 		}
-		if strings.EqualFold(strings.TrimSuffix(line, ":"), "walls") {
+		section := strings.ToLower(strings.TrimSuffix(line, ":"))
+		if section == "walls" || section == "eggs" {
 			continue
 		}
-		wallLines = append(wallLines, sourceLine{number: lineNo, text: line})
+		directiveLines = append(directiveLines, sourceLine{number: lineNo, text: line})
 	}
 	if err := s.Err(); err != nil {
 		return p, err
@@ -182,10 +184,32 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	if stars != len(p.Bugs) {
 		return p, fmt.Errorf("puzzle has %d bugs but %d stars", len(p.Bugs), stars)
 	}
-	for _, line := range wallLines {
+	for _, line := range directiveLines {
 		fields := strings.Fields(line.text)
+		if len(fields) == 3 && strings.EqualFold(fields[0], "egg") {
+			r, errR := strconv.Atoi(fields[1])
+			c, errC := strconv.Atoi(fields[2])
+			if errR != nil || errC != nil || r < 1 || r > BoardSize || c < 1 || c > BoardSize {
+				return p, fmt.Errorf("line %d: invalid egg position", line.number)
+			}
+			found := false
+			for i := range p.Bugs {
+				if p.Bugs[i].Pos == (Pos{r - 1, c - 1}) {
+					if p.Bugs[i].Egg {
+						return p, fmt.Errorf("line %d: bug is already marked as an egg", line.number)
+					}
+					p.Bugs[i].Egg = true
+					found = true
+					break
+				}
+			}
+			if !found {
+				return p, fmt.Errorf("line %d: egg position does not contain a bug", line.number)
+			}
+			continue
+		}
 		if len(fields) != 4 || !strings.EqualFold(fields[0], "wall") {
-			return p, fmt.Errorf("line %d: expected 'wall ROW COLUMN DIRECTION'", line.number)
+			return p, fmt.Errorf("line %d: expected a wall or egg directive", line.number)
 		}
 		r, errR := strconv.Atoi(fields[1])
 		c, errC := strconv.Atoi(fields[2])

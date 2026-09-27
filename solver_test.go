@@ -138,6 +138,74 @@ func TestWallLayoutIsPartOfSearchState(t *testing.T) {
 	}
 }
 
+func TestLandingOnEggHatchesIt(t *testing.T) {
+	p := puzzle(t, "max-moves 2\n..........\n..........\n.gn*......\n..*.......\n..........\n..........\n..........\n..........\n..........\n..........\neggs:\negg 3 3\n")
+	if !p.Bugs[1].Egg {
+		t.Fatal("snail was not parsed as an egg")
+	}
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 2 {
+		t.Fatalf("egg puzzle: ok=%v moves=%v", ok, moves)
+	}
+	if moves[0].Kind != Grasshopper || moves[0].Dir != Right || moves[1].Kind != Snail || moves[1].Dir != Down {
+		t.Fatalf("unexpected egg solution: %+v", moves)
+	}
+}
+
+func TestEggCannotMoveBeforeHatching(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\negg 3 3\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	if _, _, ok := applyMove(p, s, 0, Right); ok {
+		t.Fatal("egg initiated a move")
+	}
+	if _, ok := Solve(p); ok {
+		t.Fatal("egg-only puzzle should not be solvable")
+	}
+}
+
+func TestPushedEggRemainsAnEgg(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..tno*....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\negg 3 4\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok {
+		t.Fatal("beetle should be able to push an egg")
+	}
+	found := false
+	for _, b := range next.Bugs {
+		if b.Kind == Snail {
+			found = true
+			if !b.Egg || b.Pos != (Pos{2, 4}) {
+				t.Fatalf("pushed egg changed unexpectedly: %+v", b)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("pushed egg disappeared")
+	}
+}
+
+func TestEggStatusIsPartOfSearchState(t *testing.T) {
+	a := State{Bugs: []Bug{{Kind: Snail, Pos: Pos{2, 3}, Egg: true}}}
+	b := State{Bugs: []Bug{{Kind: Snail, Pos: Pos{2, 3}}}}
+	if stateKey(a) == stateKey(b) {
+		t.Fatal("egg and hatched states must have different keys")
+	}
+}
+
+func TestRejectEggWithoutBug(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\negg 1 1\n"))
+	if err == nil {
+		t.Fatal("expected egg-position validation error")
+	}
+}
+
 func TestWalkingBugBouncesAsSoonAsItCrossesTrampoline(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n.px*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	moves, ok := Solve(p)

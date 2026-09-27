@@ -14,6 +14,7 @@ The game is won when all bugs have been moved onto stars and have disappeared.
 The game is lost if any bug falls off the board.
 A game has a maximum number of moves allowed, after which the game is over if not all bugs have been moved onto stars.
 There are different types of bugs which have unique movement rules.
+Any type of bug may start as an egg. An egg cannot move by itself but can be pushed. When a bug in landing mode lands on the egg, that bug bounces onward and the egg hatches into its normal, movable bug type.
 A 'ladybird' moves two squares in the chosen direction per 'go', or until it encounters an obstacle (such as another bug).
 A 'Pink Ladybird' is non-flying and moves three squares in the chosen direction per 'go', or until it encounters an obstacle.
 A 'snail' is a non-flying bug that moves one square in the chosen direction per 'go'.
