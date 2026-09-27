@@ -150,13 +150,13 @@ func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int, cro
 		}
 		// Dropping from high to low changes to landing/bounce behaviour.
 		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
-			return land(p, next, dir, occupied, crossesWalls, bugs)
+			return land(p, next, dir, occupied, bugs)
 		}
 		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
 			return cur, cur != bug.Pos, false
 		}
 		if p.Trampolines[next.R][next.C] {
-			return land(p, next, dir, occupied, crossesWalls, bugs)
+			return land(p, next, dir, occupied, bugs)
 		}
 		if _, blocked := occupied[next]; blocked {
 			return cur, cur != bug.Pos, false
@@ -171,10 +171,10 @@ func fly(p Puzzle, start Pos, dir Direction, distance int, occupied map[Pos]int,
 	for i := 0; i < distance; i++ {
 		landing = add(landing, deltas[dir])
 	}
-	return land(p, landing, dir, occupied, true, bugs)
+	return land(p, landing, dir, occupied, bugs)
 }
 
-func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int, crossesWalls bool, bugs []Bug) (Pos, bool, bool) {
+func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int, bugs []Bug) (Pos, bool, bool) {
 	for {
 		if !inside(landing) || p.Terrain[landing.R][landing.C] == Void {
 			return Pos{}, false, true
@@ -185,9 +185,6 @@ func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int, crossesWal
 		}
 		if taken {
 			bugs[j].Egg = false
-		}
-		if !crossesWalls && hasWall(p, landing, dir) {
-			return Pos{}, false, false
 		}
 		landing = add(landing, deltas[dir])
 	}
@@ -204,13 +201,13 @@ func spider(p Puzzle, bug Bug, dir Direction, occupied map[Pos]int, bugs []Bug) 
 			return Pos{}, false, true
 		}
 		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
-			return land(p, next, dir, occupied, false, bugs)
+			return land(p, next, dir, occupied, bugs)
 		}
 		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
 			return cur, cur != bug.Pos, false
 		}
 		if p.Trampolines[next.R][next.C] {
-			return land(p, next, dir, occupied, false, bugs)
+			return land(p, next, dir, occupied, bugs)
 		}
 		if _, blocked := occupied[next]; blocked {
 			return cur, cur != bug.Pos, false
@@ -234,12 +231,12 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	occ := occupancy(s.Bugs)
 	if p.Terrain[start.R][start.C] == High && p.Terrain[next.R][next.C] == Low {
 		delete(occ, start)
-		return land(p, next, dir, occ, false, s.Bugs)
+		return land(p, next, dir, occ, s.Bugs)
 	}
 	if _, taken := occ[next]; !taken {
 		if p.Trampolines[next.R][next.C] {
 			delete(occ, start)
-			return land(p, next, dir, occ, false, s.Bugs)
+			return land(p, next, dir, occ, s.Bugs)
 		}
 		return next, true, false
 	}
@@ -276,7 +273,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 	landing := cur
 	if p.Trampolines[cur.R][cur.C] {
 		var ok, fell bool
-		landing, ok, fell = land(p, cur, dir, occ, false, s.Bugs)
+		landing, ok, fell = land(p, cur, dir, occ, s.Bugs)
 		if fell || !ok {
 			last := chain[len(chain)-1]
 			if fell && s.Bugs[last].Kind == Puck {
@@ -303,7 +300,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 			landing := cur
 			if p.Trampolines[cur.R][cur.C] {
 				var ok, fell bool
-				landing, ok, fell = land(p, cur, dir, occ, false, s.Bugs)
+				landing, ok, fell = land(p, cur, dir, occ, s.Bugs)
 				if fell || !ok {
 					return Pos{}, false, fell
 				}
@@ -322,7 +319,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 		// beetle's level and cannot be pushed.
 		return start, false, false
 	}
-	landing, ok, fell := land(p, cur, dir, occ, false, s.Bugs)
+	landing, ok, fell := land(p, cur, dir, occ, s.Bugs)
 	if fell || !ok {
 		last := chain[len(chain)-1]
 		if fell && s.Bugs[last].Kind == Puck {

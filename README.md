@@ -49,12 +49,13 @@ The file must contain the same number of bugs and stars. Coordinates printed
 in solutions are one-based `(row,column)` coordinates.
 
 Butterflies fly three squares before landing. Cockroaches walk two squares and
-obey normal non-flying height and obstacle rules, but walls have no effect on
-them while walking, landing, bouncing, or crossing trampolines. When pushed,
-they are blocked by walls normally.
+obey normal non-flying height and obstacle rules, but ignore walls during their
+own normal movement. Their direct displacement while being pushed is blocked
+by walls; like every bug, they can cross walls after entering bounce mode.
 Gold Beetles also walk two squares and ignore walls, but permanently remove
-each wall they cross during their own movement. When pushed, they neither pass
-through nor destroy walls. The `d`/`D` notation uses the final letter of “gold”.
+each wall they cross during their own movement. A direct push cannot carry one
+through a wall, and a pushed Gold Beetle never destroys walls—even if a bounce
+carries it across one. The `d`/`D` notation uses the final letter of “gold”.
 
 Rows containing only single-character cells can use the compact form shown
 above. To place multiple stars on one platform, write all ten cells separated
@@ -88,9 +89,9 @@ wall 1 1 up
 `wall 3 4 right` places a wall between `(3,4)` and `(3,5)`; spelling the same
 wall as `wall 3 5 left` has identical behavior. At least one of the two squares
 must contain a platform. An outward-facing wall is also allowed on a perimeter
-platform, such as `wall 1 1 up`. A wall blocks walking, landing, and pushed non-flying
-bugs. Flying bugs ignore walls during both their initial flight and subsequent
-bounces. Low and high platform levels do not affect walls.
+platform, such as `wall 1 1 up`. A wall blocks normal non-flying movement.
+Flying bugs ignore walls, and every bug can cross a wall once it is already in
+landing/bounce mode. Low and high platform levels do not affect walls.
 
 ### Eggs
 

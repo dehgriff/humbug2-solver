@@ -374,6 +374,25 @@ func TestFlyingBugBouncesAcrossWall(t *testing.T) {
 	}
 }
 
+func TestNonFlyingBugBouncesAcrossWall(t *testing.T) {
+	p := puzzle(t, "max-moves 2\np x C *2 . . . . . .\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 1 3 right\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&s)
+	var pinkIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == PinkLadybird {
+			pinkIndex = i
+		}
+	}
+	next, move, ok := applyMove(p, s, pinkIndex, Right)
+	if !ok || move.To != (Pos{0, 3}) || len(next.Bugs) != 1 || next.Bugs[0].Kind != Cockroach {
+		t.Fatalf("Pink Ladybird should bounce over wall onto one star: ok=%v move=%+v bugs=%+v", ok, move, next.Bugs)
+	}
+	if next.Stars[0][3] != 1 {
+		t.Fatalf("stacked star count after bounce = %d, want 1", next.Stars[0][3])
+	}
+}
+
 func TestRejectWallBetweenTwoVoidSquares(t *testing.T) {
 	_, err := ParsePuzzle(strings.NewReader("max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 1 1 right\n"))
 	if err == nil {
