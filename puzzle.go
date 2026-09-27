@@ -17,6 +17,7 @@ const (
 	Bee      BugType = 'B'
 	Spider   BugType = 'S'
 	Beetle   BugType = 'T'
+	Snail    BugType = 'N'
 )
 
 func (b BugType) String() string {
@@ -29,6 +30,8 @@ func (b BugType) String() string {
 		return "spider"
 	case Beetle:
 		return "beetle"
+	case Snail:
+		return "snail"
 	default:
 		return "unknown"
 	}
@@ -120,10 +123,10 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			case '@':
 				p.Terrain[r][c], p.Stars[r][c] = High, true
 				stars++
-			case 'l', 'b', 's', 't':
+			case 'l', 'b', 's', 't', 'n':
 				p.Terrain[r][c] = Low
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(ch), Pos: pos})
-			case 'L', 'B', 'S', 'T':
+			case 'L', 'B', 'S', 'T', 'N':
 				p.Terrain[r][c] = High
 				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(ch), Pos: pos})
 			default:
@@ -148,7 +151,9 @@ func bugRune(ch rune) BugType {
 		return Bee
 	case 's', 'S':
 		return Spider
-	default:
+	case 't', 'T':
 		return Beetle
+	default:
+		return Snail
 	}
 }

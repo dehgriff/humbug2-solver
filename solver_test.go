@@ -22,6 +22,25 @@ func TestLadybirdShortestSolution(t *testing.T) {
 	}
 }
 
+func TestSnailMovesOneSquare(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 {
+		t.Fatalf("got ok=%v moves=%v", ok, moves)
+	}
+	if moves[0].Kind != Snail || moves[0].Dir != Right || moves[0].To != (Pos{2, 3}) {
+		t.Fatalf("unexpected snail move: %+v", moves[0])
+	}
+}
+
+func TestSnailIsNonFlying(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..nO*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	if _, _, ok := applyMove(p, s, 0, Right); ok {
+		t.Fatal("low snail should not climb onto a high platform")
+	}
+}
+
 func TestBeeFliesOverVoid(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..b.*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	m, ok := Solve(p)
