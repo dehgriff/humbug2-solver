@@ -63,6 +63,38 @@ func TestGrasshopperFliesOneSquareAcrossWall(t *testing.T) {
 	}
 }
 
+func TestWalkingBugBouncesAsSoonAsItCrossesTrampoline(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.px*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].To != (Pos{2, 3}) {
+		t.Fatalf("Pink Ladybird should bounce early onto star: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestFlyingBugLandsOnTrampolineAndBouncesAcrossWall(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..gx@.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 4 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].To != (Pos{2, 4}) {
+		t.Fatalf("grasshopper should bounce from trampoline across wall: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestPushedBugBouncesFromTrampoline(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..tlx*....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle {
+		t.Fatalf("pushed bug should bounce from trampoline onto star: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+}
+
 func TestMultipleStarsOnOnePlatformAreConsumedIndividually(t *testing.T) {
 	p := puzzle(t, "max-moves 6\n. . . . . . . . . .\n. . . . . . . . . .\nn n n *3 . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n")
 	star := Pos{2, 3}
@@ -128,6 +160,21 @@ func TestRejectWallBetweenTwoVoidSquares(t *testing.T) {
 	_, err := ParsePuzzle(strings.NewReader("max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 1 1 right\n"))
 	if err == nil {
 		t.Fatal("expected wall validation error")
+	}
+}
+
+func TestWallAtBoardEdgeStopsBugFromFalling(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n*l........\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 1 left\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].To != (Pos{2, 0}) {
+		t.Fatalf("edge wall should stop ladybird on star: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestRejectEdgeWallBesideVoid(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 1 1 up\n"))
+	if err == nil {
+		t.Fatal("expected edge-wall validation error")
 	}
 }
 

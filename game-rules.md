@@ -6,6 +6,7 @@ If a bug moves to a square which does not contains a platform, it falls and the 
 Each 'go' is to start a bug moving in one of the four cardinal directions (up, down, left, right), until it stops.
 Some platform squares can contains 'stars' - up to three.
 Each bug that stops on such a square consumes one star; any remaining stars stay on the platform for later bugs.
+Some low or high platforms are trampolines and cannot contain a stationary bug. A bug that walks onto or across a trampoline, lands on one, or is pushed onto one immediately bounces to the next square as though it had landed on another bug.
 The aim of the game is to move all the bugs on to a star.
 When a bug stops on a platform square with a star on it, the bug and the star disappear from the board.
 A bug may move over a square with a star on it. It only interacts with the star if it stops on that square.
@@ -28,7 +29,7 @@ A 'push' (e.g. from a beetle) can push a chain of bugs in the chosen direction, 
 If a beetle is on a high platform, it can only push bugs that are on high platforms at the same level.
 If a bug is pushed from a high platform to a low platform, that bug enters landing mode: it lands on an unoccupied platform or bounces forward over an occupied platform.
 A platform may be a 'high' platform. These are higher than regular 'low' platforms.
-A wall may stand at the boundary between two adjacent squares, at least one of which is a platform. A wall blocks non-flying bugs from crossing that boundary, regardless of platform height. Flying bugs can cross walls during flight and while bouncing.
+A wall may stand at the boundary between two adjacent squares, at least one of which is a platform, or along the outward-facing edge of a perimeter platform. A wall blocks non-flying bugs from crossing that boundary, regardless of platform height. Flying bugs can cross walls during flight and while bouncing.
 A flying bug may fly freely between low and high platforms. However, a non-flying bug cannot move onto a high platform from a low platform.
 If a non-flying bug attempts to move onto a high platform from a low platform, the high platform acts as an obstacle and prevents the bug from moving onto it.
 If a non-flying bug attempts to move from a high platform to a low platform, it can do so. When it lands on the lower platform, this is equivalient in behaviour to a flying bug landing on the platform - i.e. if it is unoccupied the bug successfully lands and stops there, but if it is occupied, the bug will 'bounce' and will try to 'land' on the next square in the same direction.

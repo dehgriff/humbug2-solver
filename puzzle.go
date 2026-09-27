@@ -59,11 +59,12 @@ type Bug struct {
 }
 
 type Puzzle struct {
-	MaxMoves int
-	Terrain  [BoardSize][BoardSize]Terrain
-	Stars    [BoardSize][BoardSize]uint8
-	Walls    [BoardSize][BoardSize]uint8
-	Bugs     []Bug
+	MaxMoves    int
+	Terrain     [BoardSize][BoardSize]Terrain
+	Stars       [BoardSize][BoardSize]uint8
+	Trampolines [BoardSize][BoardSize]bool
+	Walls       [BoardSize][BoardSize]uint8
+	Bugs        []Bug
 }
 
 // ParsePuzzle reads a deliberately small, human-editable format.  Blank lines
@@ -143,6 +144,10 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c] = Low
 			case "O":
 				p.Terrain[r][c] = High
+			case "x":
+				p.Terrain[r][c], p.Trampolines[r][c] = Low, true
+			case "X":
+				p.Terrain[r][c], p.Trampolines[r][c] = High, true
 			case "*", "*1", "*2", "*3":
 				p.Terrain[r][c] = Low
 				p.Stars[r][c] = starCount(cell)
@@ -182,7 +187,11 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		from := Pos{r - 1, c - 1}
 		to := Pos{from.R + wallDR[dir], from.C + wallDC[dir]}
 		if to.R < 0 || to.R >= BoardSize || to.C < 0 || to.C >= BoardSize {
-			return p, fmt.Errorf("line %d: wall must be between two board squares", line.number)
+			if p.Terrain[from.R][from.C] == Void {
+				return p, fmt.Errorf("line %d: an edge wall must border a platform", line.number)
+			}
+			p.Walls[from.R][from.C] |= 1 << dir
+			continue
 		}
 		if p.Terrain[from.R][from.C] == Void && p.Terrain[to.R][to.C] == Void {
 			return p, fmt.Errorf("line %d: at least one side of a wall must be a platform", line.number)

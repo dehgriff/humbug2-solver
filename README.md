@@ -29,6 +29,7 @@ Each board row is exactly ten characters:
 |---|---|
 | `.` | no platform |
 | `o` / `O` | low / high platform |
+| `x` / `X` | trampoline on a low / high platform |
 | `*` / `@` | one star on a low / high platform |
 | `*2`, `*3` | two or three stars on a low platform (spaced rows only) |
 | `@2`, `@3` | two or three stars on a high platform (spaced rows only) |
@@ -54,6 +55,12 @@ n n n *3 . . . . . .
 Each bug that stops on `*2`, `*3`, `@2`, or `@3` consumes one star. The other
 stars remain available to subsequent bugs.
 
+A trampoline cannot hold a bug. When a walking bug enters a trampoline square
+(including while crossing it), a flying bug lands on it, or a bug is pushed
+onto it, the bug immediately enters bounce mode and tries the next square in
+the same direction. Trampolines can be low (`x`) or high (`X`). Normal height
+and wall rules apply to the resulting bounce.
+
 ### Walls
 
 Walls are listed after the ten board rows using one-based coordinates and a
@@ -63,11 +70,13 @@ direction from that square:
 walls:
 wall 3 4 right
 wall 6 7 up
+wall 1 1 up
 ```
 
 `wall 3 4 right` places a wall between `(3,4)` and `(3,5)`; spelling the same
 wall as `wall 3 5 left` has identical behavior. At least one of the two squares
-must contain a platform. A wall blocks walking, landing, and pushed non-flying
+must contain a platform. An outward-facing wall is also allowed on a perimeter
+platform, such as `wall 1 1 up`. A wall blocks walking, landing, and pushed non-flying
 bugs. Flying bugs ignore walls during both their initial flight and subsequent
 bounces. Low and high platform levels do not affect walls.
 
