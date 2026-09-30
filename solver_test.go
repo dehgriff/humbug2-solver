@@ -71,6 +71,39 @@ func TestButterflyFliesThreeSquaresAcrossWall(t *testing.T) {
 	}
 }
 
+func TestFlyTravelsToFirstPlatform(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.y..*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 2 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].Kind != Fly || moves[0].To != (Pos{2, 4}) {
+		t.Fatalf("unexpected fly solution: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestFlyStopsAtFirstPlatform(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.y.o*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	next, move, ok := applyMove(p, s, 0, Right)
+	if !ok || move.To != (Pos{2, 3}) || len(next.Bugs) != 1 {
+		t.Fatalf("fly did not stop at first platform: ok=%v move=%+v bugs=%+v", ok, move, next.Bugs)
+	}
+}
+
+func TestFlyBouncesWhenFirstPlatformIsOccupied(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.y.u*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].To != (Pos{2, 4}) {
+		t.Fatalf("fly should bounce from puck onto star: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestFlyFallsWhenNoPlatformAhead(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.y........\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	if _, _, ok := applyMove(p, s, 0, Right); ok {
+		t.Fatal("fly should fall when no platform exists before the edge")
+	}
+}
+
 func TestCockroachWalksTwoSquaresThroughWalls(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..co*.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 3 right\nwall 3 4 right\n")
 	moves, ok := Solve(p)

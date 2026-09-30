@@ -44,6 +44,7 @@ Each board row is exactly ten characters:
 | `c` / `C` | cockroach on a low / high platform |
 | `d` / `D` | Gold Beetle on a low / high platform |
 | `u` / `U` | puck on a low / high platform |
+| `y` / `Y` | fly on a low / high platform |
 
 The file must contain the same number of bugs and stars. Coordinates printed
 in solutions are one-based `(row,column)` coordinates.
@@ -56,6 +57,9 @@ Gold Beetles also walk two squares and ignore walls, but permanently remove
 each wall they cross during their own movement. A direct push cannot carry one
 through a wall, and a pushed Gold Beetle never destroys walls—even if a bounce
 carries it across one. The `d`/`D` notation uses the final letter of “gold”.
+Flies (`y`/`Y`, using the final letter of “fly”) travel until the first platform
+in the chosen direction and enter landing mode there. They ignore intervening
+voids, walls, and heights, but fall if no platform exists before the board edge.
 
 Rows containing only single-character cells can use the compact form shown
 above. To place multiple stars on one platform, write all ten cells separated
@@ -122,14 +126,14 @@ without a platform or leaves the board, it disappears and play continues.
 Requires Go 1.22 or newer.
 
 ```sh
-go run . example.puzzle
+go run . puzzles/example.puzzle
 ```
 
 Or build a reusable binary:
 
 ```sh
 go build -o humbug2 .
-./humbug2 example.puzzle
+./humbug2 puzzles/example.puzzle
 ```
 
 The solver implements the rules in `game-rules.md`. Where those rules are

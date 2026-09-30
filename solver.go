@@ -110,6 +110,8 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 		to, ok, fell = fly(p, bug.Pos, dir, 1, occupied, s.Bugs)
 	case Butterfly:
 		to, ok, fell = fly(p, bug.Pos, dir, 3, occupied, s.Bugs)
+	case Fly:
+		to, ok, fell = flyToPlatform(p, bug.Pos, dir, occupied, s.Bugs)
 	case Ladybird:
 		to, ok, fell = walk(p, bug, dir, 2, occupied, false, s.Bugs)
 	case PinkLadybird:
@@ -172,6 +174,17 @@ func fly(p Puzzle, start Pos, dir Direction, distance int, occupied map[Pos]int,
 		landing = add(landing, deltas[dir])
 	}
 	return land(p, landing, dir, occupied, bugs)
+}
+
+func flyToPlatform(p Puzzle, start Pos, dir Direction, occupied map[Pos]int, bugs []Bug) (Pos, bool, bool) {
+	landing := add(start, deltas[dir])
+	for inside(landing) {
+		if p.Terrain[landing.R][landing.C] != Void {
+			return land(p, landing, dir, occupied, bugs)
+		}
+		landing = add(landing, deltas[dir])
+	}
+	return Pos{}, false, true
 }
 
 func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int, bugs []Bug) (Pos, bool, bool) {

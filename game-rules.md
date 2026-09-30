@@ -24,6 +24,7 @@ The edge of the board is not an obstacle and does not prevent bugs from falling 
 * A 'bee' flies two squares before dropping onto the square. Hence it can fly over obstacles.
 * A 'grasshopper' flies one square before dropping onto the square.
 * A 'butterfly' flies three squares before dropping onto the square.
+* A 'fly' keeps flying in the chosen direction until it reaches the first square containing a platform, then enters landing mode on that square. It ignores walls, voids, and platform height while flying. If it leaves the board before reaching a platform, it falls and the game is lost.
 * If a flying bug (e.g. bee) lands on a square that is occupied, it 'bounces' and tries to land on the next square in the same direction.
 * After bouncing from another bug, the next landing platform may be either low or high.
 * A 'spider' keeps moving in the direction it is started for as many squares as possible until it hits an obstacle, or falls off the board.
