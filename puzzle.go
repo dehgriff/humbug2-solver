@@ -89,7 +89,8 @@ type Puzzle struct {
 
 // ParsePuzzle reads a deliberately small, human-editable format.  Blank lines
 // and lines beginning with # are ignored.  The directive "max-moves N" is
-// followed by exactly ten board rows, optionally introduced by "board:".
+// followed by up to ten board rows, optionally introduced by "board:".
+// Missing trailing cells and rows are treated as void squares.
 // See README.md for the board characters.
 func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	var p Puzzle
@@ -102,6 +103,7 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		text   string
 	}
 	var directiveLines []sourceLine
+	inDirectives := false
 	for s.Scan() {
 		lineNo++
 		line := strings.TrimSpace(s.Text())
@@ -124,12 +126,17 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		if strings.EqualFold(strings.TrimSuffix(line, ":"), "board") && len(rows) == 0 {
 			continue
 		}
-		if len(rows) < BoardSize {
-			rows = append(rows, line)
-			continue
-		}
 		section := strings.ToLower(strings.TrimSuffix(line, ":"))
 		if section == "walls" || section == "eggs" {
+			inDirectives = true
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) > 0 && (strings.EqualFold(fields[0], "wall") || strings.EqualFold(fields[0], "egg")) {
+			inDirectives = true
+		}
+		if !inDirectives && len(rows) < BoardSize {
+			rows = append(rows, line)
 			continue
 		}
 		directiveLines = append(directiveLines, sourceLine{number: lineNo, text: line})
@@ -140,21 +147,28 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	if !hasMaxMoves {
 		return p, fmt.Errorf("missing max-moves directive")
 	}
-	if len(rows) != BoardSize {
-		return p, fmt.Errorf("board must have %d rows, got %d", BoardSize, len(rows))
+	if len(rows) == 0 {
+		return p, fmt.Errorf("board must contain at least one row")
+	}
+	for len(rows) < BoardSize {
+		rows = append(rows, ".")
 	}
 	stars := 0
 	for r, row := range rows {
 		cells := strings.Fields(row)
-		if len(cells) == 1 {
+		spaced := strings.ContainsAny(row, " \t") || row == "*2" || row == "*3" || row == "@2" || row == "@3"
+		if !spaced {
 			chars := []rune(row)
 			cells = make([]string, len(chars))
 			for i, ch := range chars {
 				cells[i] = string(ch)
 			}
 		}
-		if len(cells) != BoardSize {
-			return p, fmt.Errorf("board row %d must have %d cells, got %d", r+1, BoardSize, len(cells))
+		if len(cells) > BoardSize {
+			return p, fmt.Errorf("board row %d has more than %d cells", r+1, BoardSize)
+		}
+		for len(cells) < BoardSize {
+			cells = append(cells, ".")
 		}
 		for c, cell := range cells {
 			pos := Pos{r, c}

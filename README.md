@@ -23,7 +23,7 @@ board:
 ..........
 ```
 
-Each board row is exactly ten characters:
+Each board row contains at most ten cells:
 
 | Character | Meaning |
 |---|---|
@@ -80,6 +80,29 @@ n n n *3 . . . . . .
 
 Each bug that stops on `*2`, `*3`, `@2`, or `@3` consumes one star. The other
 stars remain available to subsequent bugs.
+
+Trailing void cells may be omitted from every board row, and trailing entirely
+void rows may also be omitted. These two boards are therefore equivalent:
+
+```text
+*ob.......
+o.o*......
+..........
+..........
+..........
+..........
+..........
+..........
+..........
+..........
+```
+
+```text
+*ob
+o.o*
+```
+
+Section headers such as `walls:` or `eggs:` mark the end of a shortened board.
 
 A trampoline cannot hold a bug. When a walking bug enters a trampoline square
 (including while crossing it), a flying bug lands on it, or a bug is pushed

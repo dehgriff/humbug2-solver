@@ -754,3 +754,24 @@ func TestRejectMismatchedStars(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestParserPadsOmittedTrailingCellsAndRows(t *testing.T) {
+	p := puzzle(t, "max-moves 3\nn n *2\n")
+	if len(p.Bugs) != 2 || p.Stars[0][2] != 2 {
+		t.Fatalf("short spaced row parsed incorrectly: bugs=%+v stars=%d", p.Bugs, p.Stars[0][2])
+	}
+	for r := 1; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			if p.Terrain[r][c] != Void {
+				t.Fatalf("omitted row %d column %d was not void", r+1, c+1)
+			}
+		}
+	}
+}
+
+func TestSectionEndsShortenedBoard(t *testing.T) {
+	p := puzzle(t, "max-moves 2\nn*\neggs:\negg 1 1\n")
+	if len(p.Bugs) != 1 || !p.Bugs[0].Egg || p.Terrain[0][2] != Void || p.Terrain[1][0] != Void {
+		t.Fatalf("short board with section parsed incorrectly: %+v", p)
+	}
+}
