@@ -152,8 +152,6 @@ func TestGoldBeetleDoesNotDestroyWallDuringBounce(t *testing.T) {
 	p.Terrain[3][2] = High
 	p.Terrain[3][3] = Low
 	p.Terrain[3][4] = Low
-	p.Walls[3][2] |= 1 << Right
-	p.Walls[3][3] |= 1 << Left
 	p.Walls[3][3] |= 1 << Right
 	p.Walls[3][4] |= 1 << Left
 	s := State{
@@ -164,11 +162,66 @@ func TestGoldBeetleDoesNotDestroyWallDuringBounce(t *testing.T) {
 	if !ok || move.To != (Pos{3, 4}) {
 		t.Fatalf("Gold Beetle should bounce over grasshopper: ok=%v move=%+v", ok, move)
 	}
-	if next.Walls[3][2]&(1<<Right) != 0 {
-		t.Fatal("wall crossed during walking portion was not destroyed")
-	}
 	if next.Walls[3][3]&(1<<Right) == 0 || next.Walls[3][4]&(1<<Left) == 0 {
 		t.Fatal("wall crossed during bounce was incorrectly destroyed")
+	}
+}
+
+func TestGoldBeetleDestroysWallWhenBugBlocksDestination(t *testing.T) {
+	p := Puzzle{}
+	p.Terrain[2][2] = Low
+	p.Terrain[2][3] = Low
+	p.Walls[2][2] |= 1 << Right
+	p.Walls[2][3] |= 1 << Left
+	s := State{
+		Bugs:  []Bug{{Kind: GoldBeetle, Pos: Pos{2, 2}}, {Kind: Snail, Pos: Pos{2, 3}}},
+		Walls: p.Walls,
+	}
+	next, move, ok := applyMove(p, s, 0, Right)
+	if !ok || move.From != move.To || move.To != (Pos{2, 2}) {
+		t.Fatalf("wall-only Gold Beetle move failed: ok=%v move=%+v", ok, move)
+	}
+	if hasWall(Puzzle{Walls: next.Walls}, Pos{2, 2}, Right) {
+		t.Fatal("Gold Beetle did not destroy wall in front of blocking bug")
+	}
+	if len(next.Bugs) != 2 || next.Bugs[0].Pos != (Pos{2, 2}) {
+		t.Fatalf("Gold Beetle should remain before obstacle: %+v", next.Bugs)
+	}
+}
+
+func TestGoldBeetleDestroysWallWhenSecondSquareIsVoid(t *testing.T) {
+	p := Puzzle{}
+	p.Terrain[4][2] = Low
+	p.Terrain[5][2] = Low
+	p.Walls[4][2] |= 1 << Down
+	p.Walls[5][2] |= 1 << Up
+	s := State{Bugs: []Bug{{Kind: GoldBeetle, Pos: Pos{4, 2}}}, Walls: p.Walls}
+	next, move, ok := applyMove(p, s, 0, Down)
+	if !ok || move.To != (Pos{5, 2}) {
+		t.Fatalf("wall-only move before void failed: ok=%v move=%+v", ok, move)
+	}
+	if hasWall(Puzzle{Walls: next.Walls}, Pos{4, 2}, Down) {
+		t.Fatal("Gold Beetle did not destroy wall when second square was void")
+	}
+}
+
+func TestGoldBeetleStaysPutWhenWallBeforeBlockedSecondSquare(t *testing.T) {
+	p := Puzzle{}
+	for c := 2; c <= 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	p.Walls[2][3] |= 1 << Right
+	p.Walls[2][4] |= 1 << Left
+	s := State{
+		Bugs:  []Bug{{Kind: GoldBeetle, Pos: Pos{2, 2}}, {Kind: Ant, Pos: Pos{2, 4}, Count: 1}},
+		Walls: p.Walls,
+	}
+	next, move, ok := applyMove(p, s, 0, Right)
+	if !ok || move.To != (Pos{2, 3}) {
+		t.Fatalf("blocked two-square wall strike failed: ok=%v move=%+v", ok, move)
+	}
+	if hasWall(Puzzle{Walls: next.Walls}, Pos{2, 3}, Right) {
+		t.Fatal("Gold Beetle did not destroy wall before blocked second square")
 	}
 }
 

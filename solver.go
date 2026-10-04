@@ -135,7 +135,8 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	case Beetle:
 		to, ok, fell = beetle(p, &s, index, dir)
 	}
-	if fell || !ok || to == from {
+	wallsChanged := s.Walls != old.Walls
+	if fell || !ok || (to == from && !wallsChanged) {
 		return State{}, Move{}, false
 	}
 	if !positionHandled {
@@ -235,6 +236,12 @@ func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int, cro
 
 func walkGoldBeetle(p Puzzle, s *State, bug Bug, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
 	cur := bug.Pos
+	if struckWalls, stop, blocked := goldBeetleBlockedMove(p, cur, dir, occupied); blocked {
+		for _, wall := range struckWalls {
+			knockDownWall(&s.Walls, wall, dir)
+		}
+		return stop, true, false
+	}
 	for step := 0; step < 2; step++ {
 		next := add(cur, deltas[dir])
 		if !inside(next) || p.Terrain[next.R][next.C] == Void {
@@ -255,12 +262,42 @@ func walkGoldBeetle(p Puzzle, s *State, bug Bug, dir Direction, occupied map[Pos
 			return land(p, next, dir, occupied, s.Bugs)
 		}
 		if _, blocked := occupied[next]; blocked {
-			return cur, cur != bug.Pos, false
+			// Even though the obstacle prevents entry, the Gold Beetle has
+			// struck this boundary and knocks down any wall on it.
+			hadWall := hasWall(p, cur, dir)
+			knockDownWall(&s.Walls, cur, dir)
+			return cur, cur != bug.Pos || hadWall, false
 		}
 		knockDownWall(&s.Walls, cur, dir)
 		cur = next
 	}
 	return cur, true, false
+}
+
+func goldBeetleBlockedMove(p Puzzle, start Pos, dir Direction, occupied map[Pos]int) ([]Pos, Pos, bool) {
+	cur := start
+	var struck []Pos
+	for step := 0; step < 2; step++ {
+		if hasWall(p, cur, dir) {
+			struck = append(struck, cur)
+		}
+		next := add(cur, deltas[dir])
+		if !inside(next) || p.Terrain[next.R][next.C] == Void {
+			return struck, cur, len(struck) > 0
+		}
+		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
+			return struck, cur, len(struck) > 0
+		}
+		if _, blocked := occupied[next]; blocked {
+			return struck, cur, len(struck) > 0
+		}
+		// Landing mode begins here, so no later walking boundary is attempted.
+		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low || p.Trampolines[next.R][next.C] {
+			return nil, start, false
+		}
+		cur = next
+	}
+	return nil, start, false
 }
 
 func fly(p Puzzle, start Pos, dir Direction, distance int, occupied map[Pos]int, bugs []Bug) (Pos, bool, bool) {
