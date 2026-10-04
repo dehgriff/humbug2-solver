@@ -21,13 +21,17 @@ var deltas = map[Direction]Pos{Up: {-1, 0}, Right: {0, 1}, Down: {1, 0}, Left: {
 func (d Direction) String() string { return []string{"up", "right", "down", "left"}[d] }
 
 type Move struct {
-	Kind BugType
-	From Pos
-	Dir  Direction
-	To   Pos
+	Kind  BugType
+	Count uint8
+	From  Pos
+	Dir   Direction
+	To    Pos
 }
 
 func (m Move) String() string {
+	if m.Kind == Ant && m.Count > 1 {
+		return fmt.Sprintf("%d ants at (%d,%d) %s -> (%d,%d)", m.Count, m.From.R+1, m.From.C+1, m.Dir, m.To.R+1, m.To.C+1)
+	}
 	return fmt.Sprintf("%s at (%d,%d) %s -> (%d,%d)", m.Kind, m.From.R+1, m.From.C+1, m.Dir, m.To.R+1, m.To.C+1)
 }
 
@@ -103,6 +107,7 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	delete(occupied, from)
 	var to Pos
 	var ok, fell bool
+	positionHandled := false
 	switch bug.Kind {
 	case Bee:
 		to, ok, fell = fly(p, bug.Pos, dir, 2, occupied, s.Bugs)
@@ -112,6 +117,9 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 		to, ok, fell = fly(p, bug.Pos, dir, 3, occupied, s.Bugs)
 	case Fly:
 		to, ok, fell = flyToPlatform(p, bug.Pos, dir, occupied, s.Bugs)
+	case Ant:
+		to, ok, fell = moveAnt(p, &s, index, dir, occupied)
+		positionHandled = true
 	case Ladybird:
 		to, ok, fell = walk(p, bug, dir, 2, occupied, false, s.Bugs)
 	case PinkLadybird:
@@ -133,11 +141,71 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	if bug.Kind == GoldBeetle {
 		knockDownWalls(&s.Walls, from, to, dir)
 	}
-	s.Bugs[index].Pos = to
-	removeFallenPucks(&s)
+	if !positionHandled {
+		s.Bugs[index].Pos = to
+	}
+	removeGoneEntities(&s)
 	consumeStars(&s)
 	canonicalize(&s)
-	return s, Move{Kind: bug.Kind, From: from, Dir: dir, To: to}, true
+	return s, Move{Kind: bug.Kind, Count: antCount(bug), From: from, Dir: dir, To: to}, true
+}
+
+func moveAnt(p Puzzle, s *State, index int, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
+	start := s.Bugs[index].Pos
+	cur := start
+	s.Bugs[index].Count = antCount(s.Bugs[index])
+	for {
+		if hasWall(p, cur, dir) {
+			s.Bugs[index].Pos = cur
+			return cur, cur != start, false
+		}
+		next := add(cur, deltas[dir])
+		if !inside(next) || p.Terrain[next.R][next.C] == Void {
+			return Pos{}, false, true
+		}
+		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
+			to, ok, fell := land(p, next, dir, occupied, s.Bugs)
+			if ok {
+				s.Bugs[index].Pos = to
+			}
+			return to, ok, fell
+		}
+		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
+			s.Bugs[index].Pos = cur
+			return cur, cur != start, false
+		}
+		if p.Trampolines[next.R][next.C] {
+			to, ok, fell := land(p, next, dir, occupied, s.Bugs)
+			if ok {
+				s.Bugs[index].Pos = to
+			}
+			return to, ok, fell
+		}
+		if other, blocked := occupied[next]; blocked {
+			if s.Bugs[other].Kind == Ant && !s.Bugs[other].Egg {
+				destinationCount := antCount(s.Bugs[other])
+				capacity := uint8(3) - destinationCount
+				moving := s.Bugs[index].Count
+				joined := moving
+				if joined > capacity {
+					joined = capacity
+				}
+				if joined > 0 {
+					s.Bugs[other].Count = destinationCount + joined
+					s.Bugs[index].Count = moving - joined
+					if s.Bugs[index].Count == 0 {
+						s.Bugs[index].Pos = Pos{-1, -1}
+					} else {
+						s.Bugs[index].Pos = cur
+					}
+					return next, true, false
+				}
+			}
+			s.Bugs[index].Pos = cur
+			return cur, cur != start, false
+		}
+		cur = next
+	}
 }
 
 func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int, crossesWalls bool, bugs []Bug) (Pos, bool, bool) {
@@ -362,7 +430,19 @@ func movePushChain(s *State, chain []int, dir Direction, lastLanding Pos) {
 func consumeStars(s *State) {
 	kept := s.Bugs[:0]
 	for _, b := range s.Bugs {
-		if b.Kind != Puck && s.Stars[b.Pos.R][b.Pos.C] > 0 {
+		stars := s.Stars[b.Pos.R][b.Pos.C]
+		if b.Kind != Puck && stars > 0 {
+			if b.Kind == Ant {
+				count := antCount(b)
+				if count > stars {
+					b.Count = count - stars
+					s.Stars[b.Pos.R][b.Pos.C] = 0
+					kept = append(kept, b)
+				} else {
+					s.Stars[b.Pos.R][b.Pos.C] -= count
+				}
+				continue
+			}
 			s.Stars[b.Pos.R][b.Pos.C]--
 			continue
 		}
@@ -371,9 +451,12 @@ func consumeStars(s *State) {
 	s.Bugs = kept
 }
 
-func removeFallenPucks(s *State) {
+func removeGoneEntities(s *State) {
 	kept := s.Bugs[:0]
 	for _, b := range s.Bugs {
+		if b.Kind == Ant && b.Count == 0 {
+			continue
+		}
 		if b.Kind != Puck || inside(b.Pos) {
 			kept = append(kept, b)
 		}
@@ -412,7 +495,10 @@ func canonicalize(s *State) {
 		if s.Bugs[i].Pos.R != s.Bugs[j].Pos.R {
 			return s.Bugs[i].Pos.R < s.Bugs[j].Pos.R
 		}
-		return s.Bugs[i].Pos.C < s.Bugs[j].Pos.C
+		if s.Bugs[i].Pos.C != s.Bugs[j].Pos.C {
+			return s.Bugs[i].Pos.C < s.Bugs[j].Pos.C
+		}
+		return antCount(s.Bugs[i]) < antCount(s.Bugs[j])
 	})
 }
 
@@ -427,6 +513,7 @@ func stateKey(s State) string {
 		} else {
 			b.WriteByte(0)
 		}
+		b.WriteByte(antCount(bug))
 	}
 	b.WriteByte('|')
 	for r := 0; r < BoardSize; r++ {
@@ -444,6 +531,16 @@ func stateKey(s State) string {
 		}
 	}
 	return b.String()
+}
+
+func antCount(bug Bug) uint8 {
+	if bug.Kind != Ant {
+		return 1
+	}
+	if bug.Count == 0 {
+		return 1
+	}
+	return bug.Count
 }
 
 func add(a, b Pos) Pos  { return Pos{a.R + b.R, a.C + b.C} }

@@ -25,6 +25,7 @@ const (
 	GoldBeetle   BugType = 'D'
 	Puck         BugType = 'U'
 	Fly          BugType = 'Y'
+	Ant          BugType = 'A'
 )
 
 func (b BugType) String() string {
@@ -53,6 +54,8 @@ func (b BugType) String() string {
 		return "puck"
 	case Fly:
 		return "fly"
+	case Ant:
+		return "ant"
 	default:
 		return "unknown"
 	}
@@ -69,9 +72,10 @@ const (
 type Pos struct{ R, C int }
 
 type Bug struct {
-	Kind BugType
-	Pos  Pos
-	Egg  bool
+	Kind  BugType
+	Pos   Pos
+	Egg   bool
+	Count uint8
 }
 
 type Puzzle struct {
@@ -173,12 +177,14 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c] = High
 				p.Stars[r][c] = starCount(cell)
 				stars += int(p.Stars[r][c])
-			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u", "y":
+			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u", "y", "a":
 				p.Terrain[r][c] = Low
-				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
-			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D", "U", "Y":
+				kind := bugRune(rune(cell[0]))
+				p.Bugs = append(p.Bugs, Bug{Kind: kind, Pos: pos, Count: initialCount(kind)})
+			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D", "U", "Y", "A":
 				p.Terrain[r][c] = High
-				p.Bugs = append(p.Bugs, Bug{Kind: bugRune(rune(cell[0])), Pos: pos})
+				kind := bugRune(rune(cell[0]))
+				p.Bugs = append(p.Bugs, Bug{Kind: kind, Pos: pos, Count: initialCount(kind)})
 			default:
 				return p, fmt.Errorf("board row %d column %d: unknown cell %q", r+1, c+1, cell)
 			}
@@ -301,7 +307,16 @@ func bugRune(ch rune) BugType {
 		return GoldBeetle
 	case 'u', 'U':
 		return Puck
-	default:
+	case 'y', 'Y':
 		return Fly
+	default:
+		return Ant
 	}
+}
+
+func initialCount(kind BugType) uint8 {
+	if kind == Ant {
+		return 1
+	}
+	return 0
 }

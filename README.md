@@ -45,6 +45,7 @@ Each board row is exactly ten characters:
 | `d` / `D` | Gold Beetle on a low / high platform |
 | `u` / `U` | puck on a low / high platform |
 | `y` / `Y` | fly on a low / high platform |
+| `a` / `A` | ant on a low / high platform |
 
 The file must contain the same number of bugs and stars. Coordinates printed
 in solutions are one-based `(row,column)` coordinates.
@@ -60,6 +61,14 @@ carries it across one. The `d`/`D` notation uses the final letter of “gold”.
 Flies (`y`/`Y`, using the final letter of “fly”) travel until the first platform
 in the chosen direction and enter landing mode there. They ignore intervening
 voids, walls, and heights, but fall if no platform exists before the board edge.
+
+Ants move like spiders, but ants meeting during normal movement can combine
+into groups of at most three. A combined group moves as one unit. If a moving
+group would exceed the destination limit, only enough ants join to fill it and
+the remainder stop together on the preceding square. Landing or bouncing ants
+do not combine; they bounce normally. Stars consume individual ants from a
+group, leaving any ants for which no star was available. Puzzle files place
+only individual ants (`a`/`A`); combined groups arise during play.
 
 Rows containing only single-character cells can use the compact form shown
 above. To place multiple stars on one platform, write all ten cells separated

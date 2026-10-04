@@ -314,6 +314,96 @@ func TestPuckCannotInitiateMove(t *testing.T) {
 	}
 }
 
+func TestAntsCombineThenMoveAsOneGroup(t *testing.T) {
+	p := puzzle(t, "max-moves 2\n..........\n..........\n. . a a o *2 . . . .\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 6 right\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 2 {
+		t.Fatalf("combined-ant puzzle: ok=%v moves=%v", ok, moves)
+	}
+	if moves[0].Kind != Ant || moves[0].Count != 1 || moves[0].To != (Pos{2, 3}) {
+		t.Fatalf("unexpected combining move: %+v", moves[0])
+	}
+	if moves[1].Kind != Ant || moves[1].Count != 2 || moves[1].To != (Pos{2, 5}) {
+		t.Fatalf("combined ants did not move as one: %+v", moves[1])
+	}
+}
+
+func TestThreeAntsHittingOneLeaveOneBehind(t *testing.T) {
+	p := Puzzle{}
+	for c := 2; c <= 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	s := State{Bugs: []Bug{{Kind: Ant, Pos: Pos{2, 2}, Count: 3}, {Kind: Ant, Pos: Pos{2, 4}, Count: 1}}}
+	next, _, ok := applyMove(p, s, 0, Right)
+	if !ok || len(next.Bugs) != 2 {
+		t.Fatalf("partial ant merge failed: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+	want := map[Pos]uint8{{2, 3}: 1, {2, 4}: 3}
+	for _, b := range next.Bugs {
+		if want[b.Pos] != b.Count {
+			t.Fatalf("unexpected ant group after merge: %+v", next.Bugs)
+		}
+	}
+}
+
+func TestThreeAntsHittingTwoLeaveTwoBehind(t *testing.T) {
+	p := Puzzle{}
+	for c := 2; c <= 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	s := State{Bugs: []Bug{{Kind: Ant, Pos: Pos{2, 2}, Count: 3}, {Kind: Ant, Pos: Pos{2, 4}, Count: 2}}}
+	next, _, ok := applyMove(p, s, 0, Right)
+	if !ok || len(next.Bugs) != 2 {
+		t.Fatalf("partial ant merge failed: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+	want := map[Pos]uint8{{2, 3}: 2, {2, 4}: 3}
+	for _, b := range next.Bugs {
+		if want[b.Pos] != b.Count {
+			t.Fatalf("unexpected ant group after merge: %+v", next.Bugs)
+		}
+	}
+}
+
+func TestLandingAntsBounceWithoutCombining(t *testing.T) {
+	p := Puzzle{}
+	p.Terrain[2][2] = High
+	p.Terrain[2][3] = Low
+	p.Terrain[2][4] = Low
+	s := State{Bugs: []Bug{{Kind: Ant, Pos: Pos{2, 2}, Count: 2}, {Kind: Ant, Pos: Pos{2, 3}, Count: 1}}}
+	next, _, ok := applyMove(p, s, 0, Right)
+	if !ok || len(next.Bugs) != 2 {
+		t.Fatalf("landing ant bounce failed: ok=%v bugs=%+v", ok, next.Bugs)
+	}
+	want := map[Pos]uint8{{2, 3}: 1, {2, 4}: 2}
+	for _, b := range next.Bugs {
+		if want[b.Pos] != b.Count {
+			t.Fatalf("landing ants combined unexpectedly: %+v", next.Bugs)
+		}
+	}
+}
+
+func TestStarsConsumeIndividualAntsFromGroup(t *testing.T) {
+	s := State{Bugs: []Bug{{Kind: Ant, Pos: Pos{2, 3}, Count: 3}}}
+	s.Stars[2][3] = 2
+	consumeStars(&s)
+	if len(s.Bugs) != 1 || s.Bugs[0].Count != 1 || s.Stars[2][3] != 0 {
+		t.Fatalf("partial ant consumption failed: bugs=%+v stars=%d", s.Bugs, s.Stars[2][3])
+	}
+	s.Stars[2][3] = 1
+	consumeStars(&s)
+	if len(s.Bugs) != 0 || s.Stars[2][3] != 0 {
+		t.Fatalf("final ant consumption failed: bugs=%+v stars=%d", s.Bugs, s.Stars[2][3])
+	}
+}
+
+func TestAntCountIsPartOfSearchState(t *testing.T) {
+	a := State{Bugs: []Bug{{Kind: Ant, Pos: Pos{2, 3}, Count: 1}}}
+	b := State{Bugs: []Bug{{Kind: Ant, Pos: Pos{2, 3}, Count: 2}}}
+	if stateKey(a) == stateKey(b) {
+		t.Fatal("ant groups of different sizes must have different keys")
+	}
+}
+
 func TestWalkingBugBouncesAsSoonAsItCrossesTrampoline(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n.px*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	moves, ok := Solve(p)
