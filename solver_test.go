@@ -224,6 +224,57 @@ func TestPushedEggRemainsAnEgg(t *testing.T) {
 	}
 }
 
+func TestPushedEggDoesNotConsumeStar(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..tn*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\negg 3 4\n")
+	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&s)
+	var beetleIndex int
+	for i, b := range s.Bugs {
+		if b.Kind == Beetle {
+			beetleIndex = i
+		}
+	}
+	next, _, ok := applyMove(p, s, beetleIndex, Right)
+	if !ok {
+		t.Fatal("beetle should push egg onto star")
+	}
+	star := Pos{2, 4}
+	if next.Stars[star.R][star.C] != 1 {
+		t.Fatal("unhatched egg consumed star")
+	}
+	found := false
+	for _, b := range next.Bugs {
+		if b.Kind == Snail && b.Pos == star && b.Egg {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("egg did not remain on star: %+v", next.Bugs)
+	}
+}
+
+func TestEggOnStarDisappearsWhenLandedOn(t *testing.T) {
+	p := Puzzle{}
+	for c := 1; c <= 3; c++ {
+		p.Terrain[2][c] = Low
+	}
+	p.Stars[2][2] = 1
+	s := State{Bugs: []Bug{
+		{Kind: Grasshopper, Pos: Pos{2, 1}},
+		{Kind: Snail, Pos: Pos{2, 2}, Egg: true},
+	}, Stars: p.Stars}
+	next, _, ok := applyMove(p, s, 0, Right)
+	if !ok {
+		t.Fatal("grasshopper should land on egg and bounce")
+	}
+	if next.Stars[2][2] != 0 {
+		t.Fatal("hatched egg did not consume star")
+	}
+	if len(next.Bugs) != 1 || next.Bugs[0].Kind != Grasshopper || next.Bugs[0].Pos != (Pos{2, 3}) {
+		t.Fatalf("hatched egg should disappear while landing bug continues: %+v", next.Bugs)
+	}
+}
+
 func TestEggStatusIsPartOfSearchState(t *testing.T) {
 	a := State{Bugs: []Bug{{Kind: Snail, Pos: Pos{2, 3}, Egg: true}}}
 	b := State{Bugs: []Bug{{Kind: Snail, Pos: Pos{2, 3}}}}

@@ -216,6 +216,9 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 					if p.Bugs[i].Kind == Puck {
 						return p, fmt.Errorf("line %d: a puck cannot be an egg", line.number)
 					}
+					if p.Stars[r-1][c-1] > 0 {
+						return p, fmt.Errorf("line %d: an egg cannot start on a star", line.number)
+					}
 					if p.Bugs[i].Egg {
 						return p, fmt.Errorf("line %d: bug is already marked as an egg", line.number)
 					}

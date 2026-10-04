@@ -431,7 +431,7 @@ func consumeStars(s *State) {
 	kept := s.Bugs[:0]
 	for _, b := range s.Bugs {
 		stars := s.Stars[b.Pos.R][b.Pos.C]
-		if b.Kind != Puck && stars > 0 {
+		if b.Kind != Puck && !b.Egg && stars > 0 {
 			if b.Kind == Ant {
 				count := antCount(b)
 				if count > stars {

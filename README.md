@@ -120,7 +120,10 @@ egg 7 2
 An egg cannot initiate a move, but it can be pushed and otherwise occupies its
 platform like a bug. When another bug lands on it in landing mode, the landing
 bug bounces onward and the egg hatches into its normal bug type. The hatched
-bug can move on subsequent turns. Egg status travels with a pushed bug.
+bug can move on subsequent turns. Egg status travels with a pushed bug. An
+unhatched egg does not consume a star when pushed onto it. If another bug then
+lands on the egg, it hatches and immediately consumes one star and disappears.
+A puzzle cannot declare an egg on a star in its initial state.
 
 ### Pucks
 
