@@ -147,6 +147,31 @@ func TestGoldBeetleMovesTwoSquaresAndKnocksDownWalls(t *testing.T) {
 	}
 }
 
+func TestGoldBeetleDoesNotDestroyWallDuringBounce(t *testing.T) {
+	p := Puzzle{}
+	p.Terrain[3][2] = High
+	p.Terrain[3][3] = Low
+	p.Terrain[3][4] = Low
+	p.Walls[3][2] |= 1 << Right
+	p.Walls[3][3] |= 1 << Left
+	p.Walls[3][3] |= 1 << Right
+	p.Walls[3][4] |= 1 << Left
+	s := State{
+		Bugs:  []Bug{{Kind: GoldBeetle, Pos: Pos{3, 2}}, {Kind: Grasshopper, Pos: Pos{3, 3}}},
+		Walls: p.Walls,
+	}
+	next, move, ok := applyMove(p, s, 0, Right)
+	if !ok || move.To != (Pos{3, 4}) {
+		t.Fatalf("Gold Beetle should bounce over grasshopper: ok=%v move=%+v", ok, move)
+	}
+	if next.Walls[3][2]&(1<<Right) != 0 {
+		t.Fatal("wall crossed during walking portion was not destroyed")
+	}
+	if next.Walls[3][3]&(1<<Right) == 0 || next.Walls[3][4]&(1<<Left) == 0 {
+		t.Fatal("wall crossed during bounce was incorrectly destroyed")
+	}
+}
+
 func TestPushedGoldBeetleIsBlockedByWall(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..td*.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 4 right\n")
 	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}

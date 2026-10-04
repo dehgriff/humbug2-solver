@@ -55,9 +55,10 @@ obey normal non-flying height and obstacle rules, but ignore walls during their
 own normal movement. Their direct displacement while being pushed is blocked
 by walls; like every bug, they can cross walls after entering bounce mode.
 Gold Beetles also walk two squares and ignore walls, but permanently remove
-each wall they cross during their own movement. A direct push cannot carry one
-through a wall, and a pushed Gold Beetle never destroys walls—even if a bounce
-carries it across one. The `d`/`D` notation uses the final letter of “gold”.
+each wall crossed during the walking portion of their own movement. After
+entering landing/bounce mode they jump over subsequent walls without destroying
+them. A direct push cannot carry one through a wall, and a pushed Gold Beetle
+never destroys walls. The `d`/`D` notation uses the final letter of “gold”.
 Flies (`y`/`Y`, using the final letter of “fly”) travel until the first platform
 in the chosen direction and enter landing mode there. They ignore intervening
 voids, walls, and heights, but fall if no platform exists before the board edge.

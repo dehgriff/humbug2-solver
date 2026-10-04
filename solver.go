@@ -129,7 +129,7 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	case Cockroach:
 		to, ok, fell = walk(p, bug, dir, 2, occupied, true, s.Bugs)
 	case GoldBeetle:
-		to, ok, fell = walk(p, bug, dir, 2, occupied, true, s.Bugs)
+		to, ok, fell = walkGoldBeetle(p, &s, bug, dir, occupied)
 	case Spider:
 		to, ok, fell = spider(p, bug, dir, occupied, s.Bugs)
 	case Beetle:
@@ -137,9 +137,6 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	}
 	if fell || !ok || to == from {
 		return State{}, Move{}, false
-	}
-	if bug.Kind == GoldBeetle {
-		knockDownWalls(&s.Walls, from, to, dir)
 	}
 	if !positionHandled {
 		s.Bugs[index].Pos = to
@@ -231,6 +228,36 @@ func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int, cro
 		if _, blocked := occupied[next]; blocked {
 			return cur, cur != bug.Pos, false
 		}
+		cur = next
+	}
+	return cur, true, false
+}
+
+func walkGoldBeetle(p Puzzle, s *State, bug Bug, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
+	cur := bug.Pos
+	for step := 0; step < 2; step++ {
+		next := add(cur, deltas[dir])
+		if !inside(next) || p.Terrain[next.R][next.C] == Void {
+			return Pos{}, false, true
+		}
+		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
+			return cur, cur != bug.Pos, false
+		}
+		// The beetle crosses this boundary under its own power, so only this
+		// walking portion of the move destroys a wall. Later bounce boundaries
+		// are airborne and must remain intact.
+		if p.Terrain[cur.R][cur.C] == High && p.Terrain[next.R][next.C] == Low {
+			knockDownWall(&s.Walls, cur, dir)
+			return land(p, next, dir, occupied, s.Bugs)
+		}
+		if p.Trampolines[next.R][next.C] {
+			knockDownWall(&s.Walls, cur, dir)
+			return land(p, next, dir, occupied, s.Bugs)
+		}
+		if _, blocked := occupied[next]; blocked {
+			return cur, cur != bug.Pos, false
+		}
+		knockDownWall(&s.Walls, cur, dir)
 		cur = next
 	}
 	return cur, true, false
@@ -550,14 +577,10 @@ func hasWall(p Puzzle, from Pos, dir Direction) bool {
 	return inside(from) && p.Walls[from.R][from.C]&(1<<dir) != 0
 }
 
-func knockDownWalls(walls *[BoardSize][BoardSize]uint8, from, to Pos, dir Direction) {
-	cur := from
-	for cur != to {
-		next := add(cur, deltas[dir])
-		walls[cur.R][cur.C] &^= 1 << dir
-		if inside(next) {
-			walls[next.R][next.C] &^= 1 << Direction((int(dir)+2)%4)
-		}
-		cur = next
+func knockDownWall(walls *[BoardSize][BoardSize]uint8, from Pos, dir Direction) {
+	next := add(from, deltas[dir])
+	walls[from.R][from.C] &^= 1 << dir
+	if inside(next) {
+		walls[next.R][next.C] &^= 1 << Direction((int(dir)+2)%4)
 	}
 }

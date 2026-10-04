@@ -1,0 +1,14 @@
+# A one-move ladybird puzzle.
+max-moves 20
+board:
+..P
+..O
+..O
+sxDgoo
+....o
+. . O *3 o
+....o@
+walls:
+wall 4 4 right
+wall 5 5 down
+wall 6 4 right
