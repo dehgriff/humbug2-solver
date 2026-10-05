@@ -168,6 +168,9 @@ Requires Go 1.22 or newer.
 go run . puzzles/example.puzzle
 ```
 
+While searching, the solver prints each breadth-first depth together with the
+number of states at that depth and the total number of distinct states found.
+
 Or build a reusable binary:
 
 ```sh

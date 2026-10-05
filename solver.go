@@ -48,7 +48,20 @@ type searchNode struct {
 	depth  int
 }
 
+// SearchProgress describes a breadth-first search level as it is reached.
+type SearchProgress struct {
+	Depth       int
+	States      int
+	TotalStates int
+}
+
 func Solve(p Puzzle) ([]Move, bool) {
+	return SolveWithProgress(p, nil)
+}
+
+// SolveWithProgress finds a shortest solution and calls progress once for each
+// non-empty breadth-first search level. A nil progress function disables reports.
+func SolveWithProgress(p Puzzle, progress func(SearchProgress)) ([]Move, bool) {
 	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&start)
 	if remainingBugCount(start) == 0 {
@@ -56,31 +69,40 @@ func Solve(p Puzzle) ([]Move, bool) {
 	}
 	nodes := []searchNode{{state: start, parent: -1}}
 	seen := map[string]struct{}{stateKey(start): {}}
-	for head := 0; head < len(nodes); head++ {
-		cur := nodes[head]
-		if cur.depth >= p.MaxMoves {
-			continue
+	frontier := []int{0}
+	for depth := 0; depth <= p.MaxMoves && len(frontier) > 0; depth++ {
+		if progress != nil {
+			progress(SearchProgress{Depth: depth, States: len(frontier), TotalStates: len(nodes)})
 		}
-		for i := range cur.state.Bugs {
-			if cur.state.Bugs[i].Egg || cur.state.Bugs[i].Kind == Puck {
-				continue
-			}
-			for _, dir := range directions {
-				next, move, ok := applyMove(p, cur.state, i, dir)
-				if !ok { // includes blocked/no-op and falling branches
+		if depth == p.MaxMoves {
+			break
+		}
+		nextFrontier := make([]int, 0)
+		for _, head := range frontier {
+			cur := nodes[head]
+			for i := range cur.state.Bugs {
+				if cur.state.Bugs[i].Egg || cur.state.Bugs[i].Kind == Puck {
 					continue
 				}
-				if remainingBugCount(next) == 0 {
-					return buildPath(nodes, head, move), true
+				for _, dir := range directions {
+					next, move, ok := applyMove(p, cur.state, i, dir)
+					if !ok { // includes blocked/no-op and falling branches
+						continue
+					}
+					if remainingBugCount(next) == 0 {
+						return buildPath(nodes, head, move), true
+					}
+					key := stateKey(next)
+					if _, exists := seen[key]; exists {
+						continue
+					}
+					seen[key] = struct{}{}
+					nodes = append(nodes, searchNode{state: next, parent: head, move: move, depth: depth + 1})
+					nextFrontier = append(nextFrontier, len(nodes)-1)
 				}
-				key := stateKey(next)
-				if _, exists := seen[key]; exists {
-					continue
-				}
-				seen[key] = struct{}{}
-				nodes = append(nodes, searchNode{state: next, parent: head, move: move, depth: cur.depth + 1})
 			}
 		}
+		frontier = nextFrontier
 	}
 	return nil, false
 }

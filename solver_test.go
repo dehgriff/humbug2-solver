@@ -22,6 +22,20 @@ func TestLadybirdShortestSolution(t *testing.T) {
 	}
 }
 
+func TestSolveReportsBreadthFirstDepths(t *testing.T) {
+	p := puzzle(t, "max-moves 2\n..........\n..........\n..n*n*....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	var progress []SearchProgress
+	moves, ok := SolveWithProgress(p, func(update SearchProgress) {
+		progress = append(progress, update)
+	})
+	if !ok || len(moves) != 2 {
+		t.Fatalf("got ok=%v moves=%v", ok, moves)
+	}
+	if len(progress) != 2 || progress[0].Depth != 0 || progress[0].States != 1 || progress[1].Depth != 1 {
+		t.Fatalf("unexpected progress: %+v", progress)
+	}
+}
+
 func TestSnailMovesOneSquare(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..n*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	moves, ok := Solve(p)
