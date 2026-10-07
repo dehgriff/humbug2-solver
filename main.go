@@ -7,8 +7,9 @@ import (
 )
 
 func main() {
+	play := flag.Bool("play", false, "play the puzzle interactively instead of solving it")
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s PUZZLE\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play] PUZZLE\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "Find a shortest Humbug2 solution up to the puzzle's max-moves limit.")
 	}
 	flag.Parse()
@@ -24,6 +25,10 @@ func main() {
 	p, err := ParsePuzzle(f)
 	if err != nil {
 		fatal(fmt.Errorf("parse puzzle: %w", err))
+	}
+	if *play {
+		Play(p, os.Stdin, os.Stdout)
+		return
 	}
 	moves, solved := SolveWithProgress(p, func(progress SearchProgress) {
 		if progress.Algorithm == "astar" {

@@ -207,6 +207,29 @@ go build -o humbug2 .
 ./humbug2 puzzles/example.puzzle
 ```
 
+### Interactive play
+
+Use `-play` to inspect and play a puzzle manually:
+
+```sh
+go run . -play puzzles/example.puzzle
+```
+
+Moves use one-based row and column coordinates followed by a direction. Both
+short and full directions are accepted:
+
+```text
+4 6 u
+4 6 up
+```
+
+After every move the program prints a coordinate-labelled board, remaining
+walls, move number, and whether the puzzle is in progress, solved, or lost.
+Scorpions are displayed with their stable number and direction, such as `q1>`;
+eggs use an `e` suffix and grouped ants use their count. Enter `undo` to restore
+the previous state, including after the puzzle is over. Enter `help` or `quit`
+for the other interactive commands.
+
 The solver implements the rules in `game-rules.md`. Where those rules are
 implicit, it uses these interpretations:
 

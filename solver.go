@@ -418,9 +418,29 @@ func buildPath(nodes []searchNode, parent int, last Move) []Move {
 	return path
 }
 
+type moveStatus byte
+
+const (
+	moveInvalid moveStatus = iota
+	moveApplied
+	moveLost
+)
+
+type moveOutcome struct {
+	state  State
+	move   Move
+	status moveStatus
+	reason string
+}
+
 func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool) {
+	outcome := applyMoveDetailed(p, old, index, dir)
+	return outcome.state, outcome.move, outcome.status == moveApplied
+}
+
+func applyMoveDetailed(p Puzzle, old State, index int, dir Direction) moveOutcome {
 	if !canInitiateMove(old.Bugs[index]) {
-		return State{}, Move{}, false
+		return moveOutcome{state: old, status: moveInvalid, reason: "that object cannot initiate a move"}
 	}
 	s := cloneState(old)
 	for i := range s.Bugs {
@@ -462,8 +482,12 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 		to, ok, fell = beetle(p, &s, index, dir)
 	}
 	wallsChanged := s.Walls != old.Walls
-	if fell || !ok || (to == from && !wallsChanged) {
-		return State{}, Move{}, false
+	move := Move{Kind: bug.Kind, Count: antCount(bug), From: from, Dir: dir, To: to}
+	if fell {
+		return moveOutcome{state: old, move: move, status: moveLost, reason: fmt.Sprintf("%s fell off the board", bug.Kind)}
+	}
+	if !ok || (to == from && !wallsChanged) {
+		return moveOutcome{state: old, move: move, status: moveInvalid, reason: "the bug cannot move in that direction"}
 	}
 	if !positionHandled {
 		s.Bugs[index].Pos = to
@@ -474,14 +498,14 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	// A Gold Beetle may have changed the walls during the player move.
 	p.Walls = s.Walls
 	if !moveScorpions(p, &s) {
-		return State{}, Move{}, false
+		return moveOutcome{state: s, move: move, status: moveLost, reason: "a scorpion killed an adjacent bug"}
 	}
 	removeGoneEntities(&s)
 	for i := range s.Bugs {
 		s.Bugs[i].Stunned = false
 	}
 	canonicalize(&s)
-	return s, Move{Kind: bug.Kind, Count: antCount(bug), From: from, Dir: dir, To: to}, true
+	return moveOutcome{state: s, move: move, status: moveApplied}
 }
 
 func moveAnt(p Puzzle, s *State, index int, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
