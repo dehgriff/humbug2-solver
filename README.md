@@ -186,7 +186,9 @@ trampoline, normal landing/bounce behavior applies and may carry it over
 blockers or hatch eggs. If equally short first steps exist, the preference is
 straight ahead, a 90-degree right turn, a 90-degree left turn, then a 180-degree
 turn. Its direction becomes the direction of its latest automatic or pushed
-movement. With no reachable target it stays still.
+movement. If its movement brings it adjacent to its selected target on the same
+level without a separating wall, it then turns to face that target. With no
+reachable target it stays still.
 
 ## Run
 

@@ -155,6 +155,43 @@ func TestScorpionPrefersRightTurnOverLeftTurn(t *testing.T) {
 	}
 }
 
+func TestScorpionTurnsToFaceTargetAfterMoving(t *testing.T) {
+	var p Puzzle
+	for r := 1; r <= 2; r++ {
+		for c := 1; c <= 2; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	s := State{Bugs: []Bug{
+		{Kind: Scorpion, Pos: Pos{1, 1}, Direction: Right},
+		{Kind: Snail, Pos: Pos{2, 2}},
+	}}
+	if !moveScorpions(p, &s) {
+		t.Fatal("scorpion move unexpectedly lost puzzle")
+	}
+	if s.Bugs[0].Pos != (Pos{1, 2}) || s.Bugs[0].Direction != Down {
+		t.Fatalf("scorpion should move right then face target below: %+v", s.Bugs[0])
+	}
+}
+
+func TestScorpionTurnsBackTowardTargetAfterBouncingPastIt(t *testing.T) {
+	var p Puzzle
+	for c := 0; c < 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	p.Trampolines[2][1] = true
+	s := State{Bugs: []Bug{
+		{Kind: Scorpion, Pos: Pos{2, 0}, Direction: Right},
+		{Kind: Snail, Pos: Pos{2, 2}},
+	}}
+	if !moveScorpions(p, &s) {
+		t.Fatal("scorpion bounce unexpectedly lost puzzle")
+	}
+	if s.Bugs[0].Pos != (Pos{2, 3}) || s.Bugs[0].Direction != Left {
+		t.Fatalf("scorpion should bounce past target then face left: %+v", s.Bugs[0])
+	}
+}
+
 func TestS22ScorpionPrefersDownOverReverseTurn(t *testing.T) {
 	data, err := os.ReadFile("puzzles/s22.puzzle")
 	if err != nil {

@@ -281,7 +281,7 @@ func moveScorpions(p Puzzle, s *State) bool {
 		if scorpionAdjacentToBug(p, s.Bugs, index) {
 			return false
 		}
-		dir, moves := scorpionDirection(p, s.Bugs, index)
+		dir, target, moves := scorpionMovePlan(p, s.Bugs, index)
 		if !moves {
 			continue
 		}
@@ -299,6 +299,11 @@ func moveScorpions(p Puzzle, s *State) bool {
 			}
 		} else {
 			s.Bugs[index].Pos = next
+		}
+		if inside(s.Bugs[index].Pos) {
+			if facing, reached := directionToAdjacentTarget(p, s.Bugs[index].Pos, target); reached {
+				s.Bugs[index].Direction = facing
+			}
 		}
 		removeGoneEntities(s)
 		consumeStars(s)
@@ -328,6 +333,11 @@ func scorpionAdjacentToBug(p Puzzle, bugs []Bug, scorpion int) bool {
 // scorpionDirection chooses a first step on a shortest unobstructed path to a
 // bug on the same level. Equal paths prefer straight, right, left, then reverse.
 func scorpionDirection(p Puzzle, bugs []Bug, scorpion int) (Direction, bool) {
+	dir, _, ok := scorpionMovePlan(p, bugs, scorpion)
+	return dir, ok
+}
+
+func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool) {
 	from := bugs[scorpion].Pos
 	level := p.Terrain[from.R][from.C]
 	occupied := occupancy(bugs)
@@ -341,6 +351,7 @@ func scorpionDirection(p Puzzle, bugs []Bug, scorpion int) (Direction, bool) {
 	}
 	bestDistance := BoardSize*BoardSize + 1
 	bestDirection := Up
+	bestTarget := Pos{}
 	found := false
 	for _, dir := range order {
 		if hasWall(p, from, dir) {
@@ -353,17 +364,18 @@ func scorpionDirection(p Puzzle, bugs []Bug, scorpion int) (Direction, bool) {
 		if _, blocked := occupied[first]; blocked {
 			continue
 		}
-		distance, ok := distanceToReachableBug(p, bugs, first, level, occupied)
+		distance, target, ok := distanceToReachableBug(p, bugs, first, level, occupied)
 		if ok && distance+1 < bestDistance {
 			bestDistance = distance + 1
 			bestDirection = dir
+			bestTarget = target
 			found = true
 		}
 	}
-	return bestDirection, found
+	return bestDirection, bestTarget, found
 }
 
-func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occupied map[Pos]int) (int, bool) {
+func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occupied map[Pos]int) (int, Pos, bool) {
 	type step struct {
 		pos      Pos
 		distance int
@@ -384,7 +396,7 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 			if index, blocked := occupied[next]; blocked {
 				bug := bugs[index]
 				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
-					return cur.distance + 1, true
+					return cur.distance + 1, next, true
 				}
 				continue
 			}
@@ -395,7 +407,19 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 			queue = append(queue, step{pos: next, distance: cur.distance + 1})
 		}
 	}
-	return 0, false
+	return 0, Pos{}, false
+}
+
+func directionToAdjacentTarget(p Puzzle, from, target Pos) (Direction, bool) {
+	if !inside(target) || p.Terrain[from.R][from.C] != p.Terrain[target.R][target.C] {
+		return Up, false
+	}
+	for _, dir := range directions {
+		if add(from, deltas[dir]) == target && !hasWall(p, from, dir) {
+			return dir, true
+		}
+	}
+	return Up, false
 }
 
 func abs(value int) int {
