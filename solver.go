@@ -90,7 +90,7 @@ func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, boo
 		for _, head := range frontier {
 			cur := nodes[head]
 			for i := range cur.state.Bugs {
-				if cur.state.Bugs[i].Egg || cur.state.Bugs[i].Kind == Puck {
+				if !canInitiateMove(cur.state.Bugs[i]) {
 					continue
 				}
 				for _, dir := range directions {
@@ -148,7 +148,7 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 	*expanded++
 	successors := make([]successor, 0, len(state.Bugs)*len(directions))
 	for i := range state.Bugs {
-		if state.Bugs[i].Egg || state.Bugs[i].Kind == Puck {
+		if !canInitiateMove(state.Bugs[i]) {
 			continue
 		}
 		for _, dir := range directions {
@@ -202,6 +202,212 @@ func hasGoldBeetle(p Puzzle) bool {
 	return false
 }
 
+func canInitiateMove(bug Bug) bool {
+	return !bug.Egg && bug.Kind != Puck && bug.Kind != Scorpion
+}
+
+func canFallWithoutLosing(bug Bug) bool {
+	return bug.Kind == Puck || bug.Kind == Scorpion
+}
+
+func updatePushedScorpionDirections(before, after []Bug) {
+	oldPositions := make(map[uint8]Pos)
+	for _, bug := range before {
+		if bug.Kind == Scorpion {
+			oldPositions[bug.ID] = bug.Pos
+		}
+	}
+	for i := range after {
+		bug := &after[i]
+		if bug.Kind != Scorpion {
+			continue
+		}
+		old, exists := oldPositions[bug.ID]
+		if !exists || old == bug.Pos || !inside(bug.Pos) {
+			continue
+		}
+		switch {
+		case bug.Pos.C < old.C:
+			bug.Direction = Left
+		case bug.Pos.R < old.R:
+			bug.Direction = Up
+		case bug.Pos.C > old.C:
+			bug.Direction = Right
+		case bug.Pos.R > old.R:
+			bug.Direction = Down
+		}
+	}
+}
+
+func moveScorpions(p Puzzle, s *State) bool {
+	maxID := -1
+	for _, bug := range s.Bugs {
+		if bug.Kind == Scorpion && int(bug.ID) > maxID {
+			maxID = int(bug.ID)
+		}
+	}
+	for id := 0; id <= maxID; id++ {
+		index := -1
+		for i := range s.Bugs {
+			if s.Bugs[i].Kind == Scorpion && int(s.Bugs[i].ID) == id {
+				index = i
+				break
+			}
+		}
+		if index < 0 || s.Bugs[index].Egg {
+			continue
+		}
+		if !s.Bugs[index].Stunned && scorpionAdjacentToBug(p, s.Bugs, index) {
+			return false
+		}
+		dir, moves := scorpionDirection(p, s.Bugs, index)
+		if !moves {
+			continue
+		}
+		start := s.Bugs[index].Pos
+		next := add(start, deltas[dir])
+		s.Bugs[index].Direction = dir
+		if p.Trampolines[next.R][next.C] {
+			occupied := occupancy(s.Bugs)
+			delete(occupied, start)
+			landing, ok, fell := land(p, next, dir, occupied, s.Bugs)
+			if fell {
+				s.Bugs[index].Pos = Pos{-1, -1}
+			} else if ok {
+				s.Bugs[index].Pos = landing
+			}
+		} else {
+			s.Bugs[index].Pos = next
+		}
+		removeGoneEntities(s)
+		consumeStars(s)
+	}
+	return true
+}
+
+func scorpionAdjacentToBug(p Puzzle, bugs []Bug, scorpion int) bool {
+	from := bugs[scorpion].Pos
+	level := p.Terrain[from.R][from.C]
+	for _, bug := range bugs {
+		if bug.Kind == Puck || bug.Kind == Scorpion || bug.Egg {
+			continue
+		}
+		if p.Terrain[bug.Pos.R][bug.Pos.C] != level || abs(bug.Pos.R-from.R)+abs(bug.Pos.C-from.C) != 1 {
+			continue
+		}
+		for _, dir := range directions {
+			if add(from, deltas[dir]) == bug.Pos && !hasWall(p, from, dir) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// scorpionDirection chooses a first step on a shortest unobstructed path to a
+// bug on the same level. The current direction wins ties, followed by L/U/R/D.
+func scorpionDirection(p Puzzle, bugs []Bug, scorpion int) (Direction, bool) {
+	from := bugs[scorpion].Pos
+	level := p.Terrain[from.R][from.C]
+	occupied := occupancy(bugs)
+	delete(occupied, from)
+	order := []Direction{bugs[scorpion].Direction, Left, Up, Right, Down}
+	seenDirection := [4]bool{}
+	bestDistance := BoardSize*BoardSize + 1
+	bestDirection := Up
+	found := false
+	for _, dir := range order {
+		if seenDirection[dir] {
+			continue
+		}
+		seenDirection[dir] = true
+		if hasWall(p, from, dir) {
+			continue
+		}
+		first := add(from, deltas[dir])
+		if !inside(first) || p.Terrain[first.R][first.C] != level {
+			continue
+		}
+		if _, blocked := occupied[first]; blocked && !p.Trampolines[first.R][first.C] {
+			continue
+		}
+		first, ok := scorpionPathStep(p, first, dir, level, occupied)
+		if !ok {
+			continue
+		}
+		distance, ok := distanceToReachableBug(p, bugs, first, level, occupied)
+		if ok && distance+1 < bestDistance {
+			bestDistance = distance + 1
+			bestDirection = dir
+			found = true
+		}
+	}
+	return bestDirection, found
+}
+
+func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occupied map[Pos]int) (int, bool) {
+	type step struct {
+		pos      Pos
+		distance int
+	}
+	queue := []step{{pos: start}}
+	visited := [BoardSize][BoardSize]bool{}
+	visited[start.R][start.C] = true
+	for head := 0; head < len(queue); head++ {
+		cur := queue[head]
+		for _, dir := range directions {
+			if hasWall(p, cur.pos, dir) {
+				continue
+			}
+			next := add(cur.pos, deltas[dir])
+			if !inside(next) || p.Terrain[next.R][next.C] != level {
+				continue
+			}
+			if index, blocked := occupied[next]; blocked {
+				bug := bugs[index]
+				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
+					return cur.distance + 1, true
+				}
+				if !p.Trampolines[next.R][next.C] {
+					continue
+				}
+			}
+			next, ok := scorpionPathStep(p, next, dir, level, occupied)
+			if !ok || visited[next.R][next.C] {
+				continue
+			}
+			visited[next.R][next.C] = true
+			queue = append(queue, step{pos: next, distance: cur.distance + 1})
+		}
+	}
+	return 0, false
+}
+
+// scorpionPathStep returns the resting square for one prospective automatic
+// step. A trampoline continues landing mode over occupied/trampoline squares.
+func scorpionPathStep(p Puzzle, landing Pos, dir Direction, level Terrain, occupied map[Pos]int) (Pos, bool) {
+	if !p.Trampolines[landing.R][landing.C] {
+		return landing, true
+	}
+	for {
+		if !inside(landing) || p.Terrain[landing.R][landing.C] != level {
+			return Pos{}, false
+		}
+		_, taken := occupied[landing]
+		if !taken && !p.Trampolines[landing.R][landing.C] {
+			return landing, true
+		}
+		landing = add(landing, deltas[dir])
+	}
+}
+
+func abs(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}
+
 func buildPath(nodes []searchNode, parent int, last Move) []Move {
 	path := make([]Move, nodes[parent].depth+1)
 	path[len(path)-1] = last
@@ -213,10 +419,13 @@ func buildPath(nodes []searchNode, parent int, last Move) []Move {
 }
 
 func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool) {
-	if old.Bugs[index].Egg || old.Bugs[index].Kind == Puck {
+	if !canInitiateMove(old.Bugs[index]) {
 		return State{}, Move{}, false
 	}
 	s := cloneState(old)
+	for i := range s.Bugs {
+		s.Bugs[i].Stunned = false
+	}
 	p.Walls = s.Walls
 	bug := s.Bugs[index]
 	from := bug.Pos
@@ -261,6 +470,16 @@ func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool
 	}
 	removeGoneEntities(&s)
 	consumeStars(&s)
+	updatePushedScorpionDirections(old.Bugs, s.Bugs)
+	// A Gold Beetle may have changed the walls during the player move.
+	p.Walls = s.Walls
+	if !moveScorpions(p, &s) {
+		return State{}, Move{}, false
+	}
+	removeGoneEntities(&s)
+	for i := range s.Bugs {
+		s.Bugs[i].Stunned = false
+	}
 	canonicalize(&s)
 	return s, Move{Kind: bug.Kind, Count: antCount(bug), From: from, Dir: dir, To: to}, true
 }
@@ -447,6 +666,9 @@ func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int, bugs []Bug
 		}
 		if taken {
 			bugs[j].Egg = false
+			if bugs[j].Kind == Scorpion {
+				bugs[j].Stunned = true
+			}
 		}
 		landing = add(landing, deltas[dir])
 	}
@@ -520,7 +742,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 			return start, false, false
 		}
 		if !inside(dest) || p.Terrain[dest.R][dest.C] == Void {
-			if s.Bugs[j].Kind == Puck {
+			if canFallWithoutLosing(s.Bugs[j]) {
 				movePushChain(s, chain[:len(chain)-1], dir, cur)
 				s.Bugs[j].Pos = Pos{-1, -1}
 				return next, true, false
@@ -538,7 +760,7 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		landing, ok, fell = land(p, cur, dir, occ, s.Bugs)
 		if fell || !ok {
 			last := chain[len(chain)-1]
-			if fell && s.Bugs[last].Kind == Puck {
+			if fell && canFallWithoutLosing(s.Bugs[last]) {
 				movePushChain(s, chain[:len(chain)-1], dir, s.Bugs[last].Pos)
 				s.Bugs[last].Pos = Pos{-1, -1}
 				return next, true, false
@@ -584,7 +806,7 @@ func highBeetlePush(p Puzzle, s *State, start, next Pos, dir Direction, occ map[
 	landing, ok, fell := land(p, cur, dir, occ, s.Bugs)
 	if fell || !ok {
 		last := chain[len(chain)-1]
-		if fell && s.Bugs[last].Kind == Puck {
+		if fell && canFallWithoutLosing(s.Bugs[last]) {
 			movePushChain(s, chain[:len(chain)-1], dir, s.Bugs[last].Pos)
 			s.Bugs[last].Pos = Pos{-1, -1}
 			return next, true, false
@@ -612,7 +834,7 @@ func consumeStars(s *State) {
 	kept := s.Bugs[:0]
 	for _, b := range s.Bugs {
 		stars := s.Stars[b.Pos.R][b.Pos.C]
-		if b.Kind != Puck && !b.Egg && stars > 0 {
+		if b.Kind != Puck && b.Kind != Scorpion && !b.Egg && stars > 0 {
 			if b.Kind == Ant {
 				count := antCount(b)
 				if count > stars {
@@ -638,7 +860,7 @@ func removeGoneEntities(s *State) {
 		if b.Kind == Ant && b.Count == 0 {
 			continue
 		}
-		if b.Kind != Puck || inside(b.Pos) {
+		if !canFallWithoutLosing(b) || inside(b.Pos) {
 			kept = append(kept, b)
 		}
 	}
@@ -648,7 +870,7 @@ func removeGoneEntities(s *State) {
 func remainingBugCount(s State) int {
 	count := 0
 	for _, b := range s.Bugs {
-		if b.Kind != Puck {
+		if b.Kind != Puck && b.Kind != Scorpion {
 			count++
 		}
 	}
@@ -679,6 +901,9 @@ func canonicalize(s *State) {
 		if s.Bugs[i].Pos.C != s.Bugs[j].Pos.C {
 			return s.Bugs[i].Pos.C < s.Bugs[j].Pos.C
 		}
+		if s.Bugs[i].ID != s.Bugs[j].ID {
+			return s.Bugs[i].ID < s.Bugs[j].ID
+		}
 		return antCount(s.Bugs[i]) < antCount(s.Bugs[j])
 	})
 }
@@ -699,6 +924,10 @@ func searchStateKey(s State, includeWalls bool) string {
 			b.WriteByte(0)
 		}
 		b.WriteByte(antCount(bug))
+		if bug.Kind == Scorpion {
+			b.WriteByte(byte(bug.Direction))
+			b.WriteByte(bug.ID)
+		}
 	}
 	b.WriteByte('|')
 	for r := 0; r < BoardSize; r++ {

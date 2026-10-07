@@ -46,9 +46,11 @@ Each board row contains at most ten cells:
 | `u` / `U` | puck on a low / high platform |
 | `y` / `Y` | fly on a low / high platform |
 | `a` / `A` | ant on a low / high platform |
+| `q` / `Q` | scorpion on a low / high platform |
 
-The file must contain the same number of bugs and stars. Coordinates printed
-in solutions are one-based `(row,column)` coordinates.
+The file must contain the same number of goal bugs and stars; pucks and
+scorpions are not goal bugs. Coordinates printed in solutions are one-based
+`(row,column)` coordinates.
 
 Butterflies fly three squares before landing. Cockroaches walk two squares and
 obey normal non-flying height and obstacle rules, but ignore walls during their
@@ -159,6 +161,30 @@ occupy platforms but cannot initiate moves. They can be pushed, serve as bounce
 obstacles, and bounce from trampolines like bugs. They never consume stars and
 do not count toward winning the puzzle. If a pushed puck falls into a square
 without a platform or leaves the board, it disappears and play continues.
+
+### Scorpions
+
+Use `q` for a scorpion on a low platform and `Q` for one on a high platform.
+Scorpions cannot be selected for a player move, do not consume stars, and do
+not need to remain on the board for the puzzle to be solved. They can be pushed,
+can start as eggs, and block and bounce other bugs normally. A scorpion that
+falls disappears without losing the puzzle.
+
+After every player move has otherwise completed, each hatched scorpion acts in
+its initial board order (top-to-bottom, then left-to-right). An unstunned
+scorpion adjacent to a hatched, non-scorpion bug on the same platform level
+kills it and loses that search branch, unless a wall separates them. Eggs and
+other scorpions are neither targets nor victims. A scorpion landed on during
+the current player move is stunned: it does not kill for that move, but may
+still move.
+
+Otherwise, a scorpion moves one step along a shortest same-level path to the
+nearest reachable hatched bug. Walls and occupied squares block paths, while a
+trampoline applies normal landing/bounce behavior and can carry the scorpion
+over blockers or hatch eggs. If equally short first steps exist, its current
+direction is preferred; remaining ties use left, up, right, down. Its direction
+becomes the direction of its latest automatic or pushed movement. With no
+reachable target it stays still.
 
 ## Run
 

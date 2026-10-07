@@ -26,6 +26,7 @@ const (
 	Puck         BugType = 'U'
 	Fly          BugType = 'Y'
 	Ant          BugType = 'A'
+	Scorpion     BugType = 'Q'
 )
 
 func (b BugType) String() string {
@@ -56,6 +57,8 @@ func (b BugType) String() string {
 		return "fly"
 	case Ant:
 		return "ant"
+	case Scorpion:
+		return "scorpion"
 	default:
 		return "unknown"
 	}
@@ -72,10 +75,13 @@ const (
 type Pos struct{ R, C int }
 
 type Bug struct {
-	Kind  BugType
-	Pos   Pos
-	Egg   bool
-	Count uint8
+	Kind      BugType
+	Pos       Pos
+	Egg       bool
+	Count     uint8
+	Direction Direction
+	ID        uint8
+	Stunned   bool
 }
 
 type Puzzle struct {
@@ -191,14 +197,14 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c] = High
 				p.Stars[r][c] = starCount(cell)
 				stars += int(p.Stars[r][c])
-			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u", "y", "a":
+			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u", "y", "a", "q":
 				p.Terrain[r][c] = Low
 				kind := bugRune(rune(cell[0]))
-				p.Bugs = append(p.Bugs, Bug{Kind: kind, Pos: pos, Count: initialCount(kind)})
-			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D", "U", "Y", "A":
+				p.Bugs = append(p.Bugs, newBug(kind, pos, p.Bugs))
+			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D", "U", "Y", "A", "Q":
 				p.Terrain[r][c] = High
 				kind := bugRune(rune(cell[0]))
-				p.Bugs = append(p.Bugs, Bug{Kind: kind, Pos: pos, Count: initialCount(kind)})
+				p.Bugs = append(p.Bugs, newBug(kind, pos, p.Bugs))
 			default:
 				return p, fmt.Errorf("board row %d column %d: unknown cell %q", r+1, c+1, cell)
 			}
@@ -206,7 +212,7 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	}
 	bugCount := 0
 	for _, bug := range p.Bugs {
-		if bug.Kind != Puck {
+		if bug.Kind != Puck && bug.Kind != Scorpion {
 			bugCount++
 		}
 	}
@@ -326,9 +332,24 @@ func bugRune(ch rune) BugType {
 		return Puck
 	case 'y', 'Y':
 		return Fly
+	case 'q', 'Q':
+		return Scorpion
 	default:
 		return Ant
 	}
+}
+
+func newBug(kind BugType, pos Pos, existing []Bug) Bug {
+	bug := Bug{Kind: kind, Pos: pos, Count: initialCount(kind)}
+	if kind == Scorpion {
+		bug.Direction = Right
+		for _, other := range existing {
+			if other.Kind == Scorpion {
+				bug.ID++
+			}
+		}
+	}
+	return bug
 }
 
 func initialCount(kind BugType) uint8 {

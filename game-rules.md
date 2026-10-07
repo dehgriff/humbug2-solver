@@ -16,6 +16,11 @@ The puzzle game is called Humbug2
 * There are different types of bugs which have unique movement rules.
 * Any type of bug may start as an egg. An egg cannot move by itself but can be pushed. An egg does not consume a star while unhatched, and a puzzle cannot start with an egg on a star. When a bug in landing mode lands on the egg, that bug bounces onward and the egg hatches into its normal bug type. If the egg was pushed onto a star before being hatched, it consumes the star and disappears immediately upon hatching.
 * Pucks are inert objects that occupy platforms. They cannot move by themselves, do not consume stars, and do not need to be removed to solve the puzzle. Bugs bounce on pucks as they do on other bugs. Pucks can be pushed and bounce from trampolines; a pushed puck that falls into a void or off the board disappears without ending the game.
+* Scorpions are automatic hazards rather than goal bugs. They cannot be selected for a move, do not consume stars, and do not need to be removed to solve the puzzle. They can be pushed, can start as eggs, occupy platforms normally, and may fall without losing the puzzle.
+* Hatched scorpions act after all other consequences of each player move, one at a time in their initial top-to-bottom, left-to-right board order. Eggs do not act.
+* If an unstunned scorpion is adjacent to a hatched non-scorpion bug on the same platform level when its turn arrives, it kills that bug and the puzzle attempt is lost, unless a wall separates the two squares. Eggs and other scorpions are neither targets nor victims. A scorpion landed on during the current player move is stunned and does not kill during that move, though it can still move.
+* Otherwise a scorpion takes one step along a shortest path to the closest reachable hatched bug on the same platform level. Walls, pucks, ordinary bugs, eggs, and other scorpions block paths, except that entering a trampoline invokes normal landing mode and may bounce the scorpion over occupied squares and hatch eggs. With equally close choices it keeps moving in its current direction if possible; remaining ties use left, up, right, down. With no reachable target it stays still.
+* Every scorpion starts pointing right. Whenever it moves automatically or is pushed, it points in the direction of that movement.
 * A 'ladybird' moves two squares in the chosen direction per 'go', or until it encounters an obstacle (such as another bug).
 * A 'Pink Ladybird' is non-flying and moves three squares in the chosen direction per 'go', or until it encounters an obstacle.
 * A 'snail' is a non-flying bug that moves one square in the chosen direction per 'go'.
@@ -41,5 +46,5 @@ The edge of the board is not an obstacle and does not prevent bugs from falling 
 * If a non-flying bug attempts to move onto a high platform from a low platform, the high platform acts as an obstacle and prevents the bug from moving onto it.
 * If a non-flying bug attempts to move from a high platform to a low platform, it can do so. When it lands on the lower platform, this is equivalient in behaviour to a flying bug landing on the platform - i.e. if it is unoccupied the bug successfully lands and stops there, but if it is occupied, the bug will 'bounce' and will try to 'land' on the next square in the same direction.
 * When a flying bug successfully 'lands', it stops on that square.
-* The game should have the same number of stars as there are bugs at the start of the game.
-* The game is solved when all the bugs have been moved onto stars and have disappeared.
+* The game should have the same number of stars as there are goal bugs at the start of the game; pucks and scorpions are excluded.
+* The game is solved when all goal bugs have been moved onto stars and disappeared, regardless of any remaining pucks or scorpions.
