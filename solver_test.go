@@ -138,6 +138,47 @@ func TestScorpionDirectionTieBreaking(t *testing.T) {
 	}
 }
 
+func TestScorpionPrefersRightTurnOverLeftTurn(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < 5; r++ {
+		for c := 0; c < 5; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	bugs := []Bug{
+		{Kind: Scorpion, Pos: Pos{2, 2}, Direction: Up},
+		{Kind: Snail, Pos: Pos{2, 4}},
+		{Kind: Ladybird, Pos: Pos{2, 0}},
+	}
+	if dir, ok := scorpionDirection(p, bugs, 0); !ok || dir != Right {
+		t.Fatalf("expected right turn to win equal right/left paths, got %v, %v", dir, ok)
+	}
+}
+
+func TestS22ScorpionPrefersDownOverReverseTurn(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s22.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&state)
+	grasshopper := bugAt(state.Bugs, Pos{5, 7})
+	next, _, ok := applyMove(p, state, grasshopper, Left)
+	if !ok {
+		t.Fatal("grasshopper move should be valid")
+	}
+	for _, bug := range next.Bugs {
+		if bug.Kind == Scorpion && bug.ID == 1 {
+			if bug.Pos != (Pos{3, 5}) || bug.Direction != Down {
+				t.Fatalf("scorpion 2 should turn down, got %+v", bug)
+			}
+			return
+		}
+	}
+	t.Fatal("scorpion 2 not found")
+}
+
 func TestScorpionDirectionAndIdentityArePartOfSearchState(t *testing.T) {
 	a := State{Bugs: []Bug{{Kind: Scorpion, Pos: Pos{2, 3}, Direction: Left, ID: 0}}}
 	b := State{Bugs: []Bug{{Kind: Scorpion, Pos: Pos{2, 3}, Direction: Right, ID: 0}}}

@@ -183,10 +183,10 @@ nearest reachable hatched bug. Walls and occupied squares block paths, while a
 trampoline is treated as an ordinary empty platform during route selection—the
 scorpion does not anticipate its bounce. If it actually steps onto that
 trampoline, normal landing/bounce behavior applies and may carry it over
-blockers or hatch eggs. If equally short first steps exist, its current direction
-is preferred; remaining ties use left, up, right, down. Its direction becomes
-the direction of its latest automatic or pushed movement. With no reachable
-target it stays still.
+blockers or hatch eggs. If equally short first steps exist, the preference is
+straight ahead, a 90-degree right turn, a 90-degree left turn, then a 180-degree
+turn. Its direction becomes the direction of its latest automatic or pushed
+movement. With no reachable target it stays still.
 
 ## Run
 

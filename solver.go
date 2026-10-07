@@ -326,22 +326,23 @@ func scorpionAdjacentToBug(p Puzzle, bugs []Bug, scorpion int) bool {
 }
 
 // scorpionDirection chooses a first step on a shortest unobstructed path to a
-// bug on the same level. The current direction wins ties, followed by L/U/R/D.
+// bug on the same level. Equal paths prefer straight, right, left, then reverse.
 func scorpionDirection(p Puzzle, bugs []Bug, scorpion int) (Direction, bool) {
 	from := bugs[scorpion].Pos
 	level := p.Terrain[from.R][from.C]
 	occupied := occupancy(bugs)
 	delete(occupied, from)
-	order := []Direction{bugs[scorpion].Direction, Left, Up, Right, Down}
-	seenDirection := [4]bool{}
+	pointing := bugs[scorpion].Direction
+	order := []Direction{
+		pointing,
+		Direction((int(pointing) + 1) % len(directions)),
+		Direction((int(pointing) + 3) % len(directions)),
+		Direction((int(pointing) + 2) % len(directions)),
+	}
 	bestDistance := BoardSize*BoardSize + 1
 	bestDirection := Up
 	found := false
 	for _, dir := range order {
-		if seenDirection[dir] {
-			continue
-		}
-		seenDirection[dir] = true
 		if hasWall(p, from, dir) {
 			continue
 		}
