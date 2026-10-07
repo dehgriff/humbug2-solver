@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -190,20 +191,41 @@ func TestEggIsNotScorpionTarget(t *testing.T) {
 
 func TestScorpionBouncesOnTrampolineAndHatchesEgg(t *testing.T) {
 	var p Puzzle
-	for c := 0; c < 5; c++ {
-		p.Terrain[2][c] = Low
+	for r := 0; r < 3; r++ {
+		for c := 0; c < 4; c++ {
+			p.Terrain[r][c] = Low
+		}
 	}
 	p.Trampolines[2][1] = true
 	s := State{Bugs: []Bug{
 		{Kind: Scorpion, Pos: Pos{2, 0}, Direction: Right},
 		{Kind: Snail, Pos: Pos{2, 2}, Egg: true},
-		{Kind: Ladybird, Pos: Pos{2, 4}},
+		{Kind: Ladybird, Pos: Pos{0, 1}},
 	}}
 	if !moveScorpions(p, &s) {
 		t.Fatal("scorpion trampoline move unexpectedly lost puzzle")
 	}
 	if s.Bugs[0].Pos != (Pos{2, 3}) || s.Bugs[1].Egg {
 		t.Fatalf("scorpion should bounce over and hatch egg: %+v", s.Bugs)
+	}
+}
+
+func TestS17BeeMoveMakesScorpionApproachAcrossPerceivedTrampolinePath(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s17.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&state)
+	bee := bugAt(state.Bugs, Pos{1, 1})
+	next, _, ok := applyMove(p, state, bee, Right)
+	if !ok {
+		t.Fatal("bee move should be valid")
+	}
+	scorpion := bugAt(next.Bugs, Pos{1, 1})
+	if scorpion < 0 || next.Bugs[scorpion].Kind != Scorpion {
+		t.Fatalf("scorpion should move right into the bee's old square: %+v", next.Bugs)
 	}
 }
 

@@ -180,11 +180,13 @@ still move.
 
 Otherwise, a scorpion moves one step along a shortest same-level path to the
 nearest reachable hatched bug. Walls and occupied squares block paths, while a
-trampoline applies normal landing/bounce behavior and can carry the scorpion
-over blockers or hatch eggs. If equally short first steps exist, its current
-direction is preferred; remaining ties use left, up, right, down. Its direction
-becomes the direction of its latest automatic or pushed movement. With no
-reachable target it stays still.
+trampoline is treated as an ordinary empty platform during route selection—the
+scorpion does not anticipate its bounce. If it actually steps onto that
+trampoline, normal landing/bounce behavior applies and may carry it over
+blockers or hatch eggs. If equally short first steps exist, its current direction
+is preferred; remaining ties use left, up, right, down. Its direction becomes
+the direction of its latest automatic or pushed movement. With no reachable
+target it stays still.
 
 ## Run
 

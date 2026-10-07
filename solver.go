@@ -328,11 +328,7 @@ func scorpionDirection(p Puzzle, bugs []Bug, scorpion int) (Direction, bool) {
 		if !inside(first) || p.Terrain[first.R][first.C] != level {
 			continue
 		}
-		if _, blocked := occupied[first]; blocked && !p.Trampolines[first.R][first.C] {
-			continue
-		}
-		first, ok := scorpionPathStep(p, first, dir, level, occupied)
-		if !ok {
+		if _, blocked := occupied[first]; blocked {
 			continue
 		}
 		distance, ok := distanceToReachableBug(p, bugs, first, level, occupied)
@@ -368,12 +364,9 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
 					return cur.distance + 1, true
 				}
-				if !p.Trampolines[next.R][next.C] {
-					continue
-				}
+				continue
 			}
-			next, ok := scorpionPathStep(p, next, dir, level, occupied)
-			if !ok || visited[next.R][next.C] {
+			if visited[next.R][next.C] {
 				continue
 			}
 			visited[next.R][next.C] = true
@@ -381,24 +374,6 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 		}
 	}
 	return 0, false
-}
-
-// scorpionPathStep returns the resting square for one prospective automatic
-// step. A trampoline continues landing mode over occupied/trampoline squares.
-func scorpionPathStep(p Puzzle, landing Pos, dir Direction, level Terrain, occupied map[Pos]int) (Pos, bool) {
-	if !p.Trampolines[landing.R][landing.C] {
-		return landing, true
-	}
-	for {
-		if !inside(landing) || p.Terrain[landing.R][landing.C] != level {
-			return Pos{}, false
-		}
-		_, taken := occupied[landing]
-		if !taken && !p.Trampolines[landing.R][landing.C] {
-			return landing, true
-		}
-		landing = add(landing, deltas[dir])
-	}
 }
 
 func abs(value int) int {
