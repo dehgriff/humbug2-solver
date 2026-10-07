@@ -120,7 +120,7 @@ func solveAStar(p Puzzle, start State, progress func(SearchProgress)) ([]Move, b
 	includeWalls := hasGoldBeetle(p)
 	startKey := searchStateKey(start, includeWalls)
 	totalExpanded := 0
-	for bound := remainingBugCount(start); bound <= p.MaxMoves; bound++ {
+	for bound := searchLowerBound(start); bound <= p.MaxMoves; bound++ {
 		bestDepth := map[string]int{startKey: 0}
 		path := make([]Move, 0, bound)
 		expanded := 0
@@ -156,7 +156,7 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 			if !ok {
 				continue
 			}
-			h := remainingBugCount(next)
+			h := searchLowerBound(next)
 			if depth+1+h <= bound {
 				successors = append(successors, successor{state: next, move: move, h: h})
 			}
@@ -166,7 +166,7 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 	sort.SliceStable(successors, func(i, j int) bool { return successors[i].h < successors[j].h })
 	for _, next := range successors {
 		*path = append(*path, next.move)
-		if next.h == 0 {
+		if remainingBugCount(next.state) == 0 {
 			return true
 		}
 		nextDepth := depth + 1
@@ -186,11 +186,29 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 
 func canUseBugCountHeuristic(p Puzzle) bool {
 	for _, bug := range p.Bugs {
-		if bug.Egg || bug.Kind == Beetle {
+		if bug.Kind == Beetle {
 			return false
 		}
 	}
 	return true
+}
+
+// searchLowerBound is an admissible estimate of remaining player moves when
+// there is no pushing Beetle. Each goal bug needs at least one move, except an
+// egg already on a star: it may disappear as a side effect of another bug
+// landing on it, so it contributes zero.
+func searchLowerBound(s State) int {
+	count := 0
+	for _, bug := range s.Bugs {
+		if bug.Kind == Puck || bug.Kind == Scorpion {
+			continue
+		}
+		if bug.Egg && s.Stars[bug.Pos.R][bug.Pos.C] > 0 {
+			continue
+		}
+		count++
+	}
+	return count
 }
 
 func hasGoldBeetle(p Puzzle) bool {

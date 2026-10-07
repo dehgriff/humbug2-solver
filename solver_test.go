@@ -48,6 +48,48 @@ func TestSolveUsesAStarWhenBugCountIsSafeLowerBound(t *testing.T) {
 	}
 }
 
+func TestSolveUsesAStarForEggPuzzle(t *testing.T) {
+	p := puzzle(t, "max-moves 2\n..........\n..........\n.gn*......\n..*.......\n..........\n..........\n..........\n..........\n..........\n..........\negg 3 3\n")
+	var progress []SearchProgress
+	moves, ok := SolveWithProgress(p, func(update SearchProgress) { progress = append(progress, update) })
+	if !ok || len(moves) != 2 || len(progress) == 0 || progress[0].Algorithm != "astar" {
+		t.Fatalf("unexpected egg A* result: ok=%v moves=%v progress=%+v", ok, moves, progress)
+	}
+}
+
+func TestEggOnStarContributesZeroToSearchLowerBound(t *testing.T) {
+	state := State{Bugs: []Bug{
+		{Kind: Snail, Pos: Pos{2, 2}, Egg: true},
+		{Kind: Ladybird, Pos: Pos{3, 3}},
+	}}
+	state.Stars[2][2] = 1
+	if got := searchLowerBound(state); got != 1 {
+		t.Fatalf("got lower bound %d, want 1", got)
+	}
+	if got := remainingBugCount(state); got != 2 {
+		t.Fatalf("egg on star must still count as an unsolved bug; got %d", got)
+	}
+}
+
+func TestAStarDoesNotMistakeEggOnStarForSolvedPuzzle(t *testing.T) {
+	var p Puzzle
+	p.MaxMoves = 1
+	for c := 1; c <= 3; c++ {
+		p.Terrain[2][c] = Low
+	}
+	start := State{Bugs: []Bug{
+		{Kind: Grasshopper, Pos: Pos{2, 1}},
+		{Kind: Snail, Pos: Pos{2, 2}, Egg: true},
+	}}
+	start.Stars[2][2], start.Stars[2][3] = 1, 1
+	p.Stars = start.Stars
+	canonicalize(&start)
+	moves, ok := solveAStar(p, start, nil)
+	if !ok || len(moves) != 1 || moves[0].Kind != Grasshopper || moves[0].Dir != Right {
+		t.Fatalf("egg-on-star A* result: ok=%v moves=%v", ok, moves)
+	}
+}
+
 func TestSolveFallsBackToBFSForPushingBeetle(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..t*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	var progress []SearchProgress

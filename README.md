@@ -198,8 +198,9 @@ go run . puzzles/example.puzzle
 
 The solver uses an exact iterative-deepening A* search when its remaining-bug
 lower bound is safe, and prints each lower bound and the number of states
-searched. For puzzles containing eggs or pushing beetles it falls back to
-breadth-first search and prints each depth. Both modes guarantee a shortest
+searched. Eggs on stars contribute zero to the lower bound because they may be
+hatched as a side effect. For puzzles containing pushing beetles it falls back
+to breadth-first search and prints each depth. Both modes guarantee a shortest
 solution.
 
 Or build a reusable binary:
