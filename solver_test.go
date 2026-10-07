@@ -170,8 +170,8 @@ func TestLandingOnScorpionStunsItForMove(t *testing.T) {
 		t.Fatal("landing bug should pass a stunned scorpion safely")
 	}
 	positions := occupancy(next.Bugs)
-	if _, exists := positions[Pos{2, 0}]; !exists {
-		t.Fatalf("stunned scorpion should move instead of killing: %+v", next.Bugs)
+	if _, exists := positions[Pos{2, 1}]; !exists {
+		t.Fatalf("stunned scorpion should remain in place: %+v", next.Bugs)
 	}
 	if _, exists := positions[Pos{2, 2}]; !exists {
 		t.Fatalf("grasshopper should bounce past scorpion: %+v", next.Bugs)

@@ -175,8 +175,8 @@ its initial board order (top-to-bottom, then left-to-right). An unstunned
 scorpion adjacent to a hatched, non-scorpion bug on the same platform level
 kills it and loses that search branch, unless a wall separates them. Eggs and
 other scorpions are neither targets nor victims. A scorpion landed on during
-the current player move is stunned: it does not kill for that move, but may
-still move.
+the current player move is stunned: it neither kills nor moves during its
+automatic turn for that move.
 
 Otherwise, a scorpion moves one step along a shortest same-level path to the
 nearest reachable hatched bug. Walls and occupied squares block paths, while a

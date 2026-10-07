@@ -257,7 +257,10 @@ func moveScorpions(p Puzzle, s *State) bool {
 		if index < 0 || s.Bugs[index].Egg {
 			continue
 		}
-		if !s.Bugs[index].Stunned && scorpionAdjacentToBug(p, s.Bugs, index) {
+		if s.Bugs[index].Stunned {
+			continue
+		}
+		if scorpionAdjacentToBug(p, s.Bugs, index) {
 			return false
 		}
 		dir, moves := scorpionDirection(p, s.Bugs, index)
