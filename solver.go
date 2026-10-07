@@ -48,8 +48,9 @@ type searchNode struct {
 	depth  int
 }
 
-// SearchProgress describes a breadth-first search level as it is reached.
+// SearchProgress describes a search frontier as it is reached.
 type SearchProgress struct {
+	Algorithm   string
 	Depth       int
 	States      int
 	TotalStates int
@@ -59,20 +60,28 @@ func Solve(p Puzzle) ([]Move, bool) {
 	return SolveWithProgress(p, nil)
 }
 
-// SolveWithProgress finds a shortest solution and calls progress once for each
-// non-empty breadth-first search level. A nil progress function disables reports.
+// SolveWithProgress finds a shortest solution. It uses A* when the number of
+// remaining bugs is a safe lower bound, and otherwise falls back to BFS.
 func SolveWithProgress(p Puzzle, progress func(SearchProgress)) ([]Move, bool) {
 	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&start)
 	if remainingBugCount(start) == 0 {
 		return nil, true
 	}
+	if canUseBugCountHeuristic(p) {
+		return solveAStar(p, start, progress)
+	}
+	return solveBFS(p, start, progress)
+}
+
+func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, bool) {
 	nodes := []searchNode{{state: start, parent: -1}}
-	seen := map[string]struct{}{stateKey(start): {}}
+	includeWalls := hasGoldBeetle(p)
+	seen := map[string]struct{}{searchStateKey(start, includeWalls): {}}
 	frontier := []int{0}
 	for depth := 0; depth <= p.MaxMoves && len(frontier) > 0; depth++ {
 		if progress != nil {
-			progress(SearchProgress{Depth: depth, States: len(frontier), TotalStates: len(nodes)})
+			progress(SearchProgress{Algorithm: "bfs", Depth: depth, States: len(frontier), TotalStates: len(nodes)})
 		}
 		if depth == p.MaxMoves {
 			break
@@ -92,7 +101,7 @@ func SolveWithProgress(p Puzzle, progress func(SearchProgress)) ([]Move, bool) {
 					if remainingBugCount(next) == 0 {
 						return buildPath(nodes, head, move), true
 					}
-					key := stateKey(next)
+					key := searchStateKey(next, includeWalls)
 					if _, exists := seen[key]; exists {
 						continue
 					}
@@ -105,6 +114,92 @@ func SolveWithProgress(p Puzzle, progress func(SearchProgress)) ([]Move, bool) {
 		frontier = nextFrontier
 	}
 	return nil, false
+}
+
+func solveAStar(p Puzzle, start State, progress func(SearchProgress)) ([]Move, bool) {
+	includeWalls := hasGoldBeetle(p)
+	startKey := searchStateKey(start, includeWalls)
+	totalExpanded := 0
+	for bound := remainingBugCount(start); bound <= p.MaxMoves; bound++ {
+		bestDepth := map[string]int{startKey: 0}
+		path := make([]Move, 0, bound)
+		expanded := 0
+		if idaSearch(p, start, 0, bound, includeWalls, bestDepth, &path, &expanded) {
+			if progress != nil {
+				progress(SearchProgress{Algorithm: "astar", Depth: bound, States: expanded, TotalStates: totalExpanded + expanded})
+			}
+			return path, true
+		}
+		totalExpanded += expanded
+		if progress != nil {
+			progress(SearchProgress{Algorithm: "astar", Depth: bound, States: expanded, TotalStates: totalExpanded})
+		}
+	}
+	return nil, false
+}
+
+type successor struct {
+	state State
+	move  Move
+	h     int
+}
+
+func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestDepth map[string]int, path *[]Move, expanded *int) bool {
+	*expanded++
+	successors := make([]successor, 0, len(state.Bugs)*len(directions))
+	for i := range state.Bugs {
+		if state.Bugs[i].Egg || state.Bugs[i].Kind == Puck {
+			continue
+		}
+		for _, dir := range directions {
+			next, move, ok := applyMove(p, state, i, dir)
+			if !ok {
+				continue
+			}
+			h := remainingBugCount(next)
+			if depth+1+h <= bound {
+				successors = append(successors, successor{state: next, move: move, h: h})
+			}
+		}
+	}
+	// Scoring moves first makes a solution quick to find in the final iteration.
+	sort.SliceStable(successors, func(i, j int) bool { return successors[i].h < successors[j].h })
+	for _, next := range successors {
+		*path = append(*path, next.move)
+		if next.h == 0 {
+			return true
+		}
+		nextDepth := depth + 1
+		key := searchStateKey(next.state, includeWalls)
+		if oldDepth, exists := bestDepth[key]; exists && oldDepth <= nextDepth {
+			*path = (*path)[:len(*path)-1]
+			continue
+		}
+		bestDepth[key] = nextDepth
+		if idaSearch(p, next.state, nextDepth, bound, includeWalls, bestDepth, path, expanded) {
+			return true
+		}
+		*path = (*path)[:len(*path)-1]
+	}
+	return false
+}
+
+func canUseBugCountHeuristic(p Puzzle) bool {
+	for _, bug := range p.Bugs {
+		if bug.Egg || bug.Kind == Beetle {
+			return false
+		}
+	}
+	return true
+}
+
+func hasGoldBeetle(p Puzzle) bool {
+	for _, bug := range p.Bugs {
+		if bug.Kind == GoldBeetle {
+			return true
+		}
+	}
+	return false
 }
 
 func buildPath(nodes []searchNode, parent int, last Move) []Move {
@@ -589,6 +684,10 @@ func canonicalize(s *State) {
 }
 
 func stateKey(s State) string {
+	return searchStateKey(s, true)
+}
+
+func searchStateKey(s State, includeWalls bool) string {
 	var b strings.Builder
 	for _, bug := range s.Bugs {
 		b.WriteByte(byte(bug.Kind))
@@ -610,10 +709,12 @@ func stateKey(s State) string {
 			}
 		}
 	}
-	b.WriteByte('|')
-	for r := 0; r < BoardSize; r++ {
-		for c := 0; c < BoardSize; c++ {
-			b.WriteByte(s.Walls[r][c])
+	if includeWalls {
+		b.WriteByte('|')
+		for r := 0; r < BoardSize; r++ {
+			for c := 0; c < BoardSize; c++ {
+				b.WriteByte(s.Walls[r][c])
+			}
 		}
 	}
 	return b.String()

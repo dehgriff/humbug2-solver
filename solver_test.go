@@ -24,15 +24,35 @@ func TestLadybirdShortestSolution(t *testing.T) {
 
 func TestSolveReportsBreadthFirstDepths(t *testing.T) {
 	p := puzzle(t, "max-moves 2\n..........\n..........\n..n*n*....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&start)
 	var progress []SearchProgress
-	moves, ok := SolveWithProgress(p, func(update SearchProgress) {
+	moves, ok := solveBFS(p, start, func(update SearchProgress) {
 		progress = append(progress, update)
 	})
 	if !ok || len(moves) != 2 {
 		t.Fatalf("got ok=%v moves=%v", ok, moves)
 	}
-	if len(progress) != 2 || progress[0].Depth != 0 || progress[0].States != 1 || progress[1].Depth != 1 {
+	if len(progress) != 2 || progress[0].Algorithm != "bfs" || progress[0].Depth != 0 || progress[0].States != 1 || progress[1].Depth != 1 {
 		t.Fatalf("unexpected progress: %+v", progress)
+	}
+}
+
+func TestSolveUsesAStarWhenBugCountIsSafeLowerBound(t *testing.T) {
+	p := puzzle(t, "max-moves 2\n..........\n..........\n..n*n*....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	var progress []SearchProgress
+	moves, ok := SolveWithProgress(p, func(update SearchProgress) { progress = append(progress, update) })
+	if !ok || len(moves) != 2 || len(progress) == 0 || progress[0].Algorithm != "astar" || progress[0].Depth != 2 {
+		t.Fatalf("unexpected A* result: ok=%v moves=%v progress=%+v", ok, moves, progress)
+	}
+}
+
+func TestSolveFallsBackToBFSForPushingBeetle(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..t*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	var progress []SearchProgress
+	moves, ok := SolveWithProgress(p, func(update SearchProgress) { progress = append(progress, update) })
+	if !ok || len(moves) != 1 || len(progress) == 0 || progress[0].Algorithm != "bfs" {
+		t.Fatalf("unexpected BFS fallback: ok=%v moves=%v progress=%+v", ok, moves, progress)
 	}
 }
 

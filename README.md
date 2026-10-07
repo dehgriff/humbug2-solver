@@ -168,8 +168,11 @@ Requires Go 1.22 or newer.
 go run . puzzles/example.puzzle
 ```
 
-While searching, the solver prints each breadth-first depth together with the
-number of states at that depth and the total number of distinct states found.
+The solver uses an exact iterative-deepening A* search when its remaining-bug
+lower bound is safe, and prints each lower bound and the number of states
+searched. For puzzles containing eggs or pushing beetles it falls back to
+breadth-first search and prints each depth. Both modes guarantee a shortest
+solution.
 
 Or build a reusable binary:
 

@@ -26,7 +26,11 @@ func main() {
 		fatal(fmt.Errorf("parse puzzle: %w", err))
 	}
 	moves, solved := SolveWithProgress(p, func(progress SearchProgress) {
-		fmt.Printf("Depth %d: %d state(s) (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
+		if progress.Algorithm == "astar" {
+			fmt.Printf("Lower bound %d: %d state(s) searched (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
+		} else {
+			fmt.Printf("Depth %d: %d state(s) (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
+		}
 	})
 	if !solved {
 		fmt.Printf("No solution within %d moves.\n", p.MaxMoves)
