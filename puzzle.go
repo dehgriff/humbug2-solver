@@ -27,6 +27,7 @@ const (
 	Fly          BugType = 'Y'
 	Ant          BugType = 'A'
 	Scorpion     BugType = 'Q'
+	Caterpillar  BugType = 'K'
 )
 
 func (b BugType) String() string {
@@ -59,6 +60,8 @@ func (b BugType) String() string {
 		return "ant"
 	case Scorpion:
 		return "scorpion"
+	case Caterpillar:
+		return "caterpillar"
 	default:
 		return "unknown"
 	}
@@ -197,11 +200,11 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c] = High
 				p.Stars[r][c] = starCount(cell)
 				stars += int(p.Stars[r][c])
-			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u", "y", "a", "q":
+			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u", "y", "a", "q", "k":
 				p.Terrain[r][c] = Low
 				kind := bugRune(rune(cell[0]))
 				p.Bugs = append(p.Bugs, newBug(kind, pos, p.Bugs))
-			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D", "U", "Y", "A", "Q":
+			case "L", "B", "S", "T", "N", "P", "G", "F", "C", "D", "U", "Y", "A", "Q", "K":
 				p.Terrain[r][c] = High
 				kind := bugRune(rune(cell[0]))
 				p.Bugs = append(p.Bugs, newBug(kind, pos, p.Bugs))
@@ -334,6 +337,8 @@ func bugRune(ch rune) BugType {
 		return Fly
 	case 'q', 'Q':
 		return Scorpion
+	case 'k', 'K':
+		return Caterpillar
 	default:
 		return Ant
 	}

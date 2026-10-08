@@ -194,13 +194,14 @@ func canUseBugCountHeuristic(p Puzzle) bool {
 }
 
 // searchLowerBound is an admissible estimate of remaining player moves when
-// there is no pushing Beetle. Each goal bug needs at least one move, except an
-// egg already on a star: it may disappear as a side effect of another bug
-// landing on it, so it contributes zero.
+// there is no pushing Beetle. Caterpillars contribute zero because a nudge can
+// remove one as a side effect while the initiating bug also scores. An egg
+// already on a star likewise contributes zero because landing can hatch it as
+// a side effect.
 func searchLowerBound(s State) int {
 	count := 0
 	for _, bug := range s.Bugs {
-		if bug.Kind == Puck || bug.Kind == Scorpion {
+		if bug.Kind == Puck || bug.Kind == Scorpion || bug.Kind == Caterpillar {
 			continue
 		}
 		if bug.Egg && s.Stars[bug.Pos.R][bug.Pos.C] > 0 {
@@ -493,6 +494,8 @@ func applyMoveDetailed(p Puzzle, old State, index int, dir Direction) moveOutcom
 		to, ok, fell = walk(p, bug, dir, 3, occupied, false, s.Bugs)
 	case Snail:
 		to, ok, fell = walk(p, bug, dir, 1, occupied, false, s.Bugs)
+	case Caterpillar:
+		to, ok, fell = walk(p, bug, dir, 1, occupied, false, s.Bugs)
 	case Cockroach:
 		to, ok, fell = walk(p, bug, dir, 2, occupied, true, s.Bugs)
 	case GoldBeetle:
@@ -503,11 +506,19 @@ func applyMoveDetailed(p Puzzle, old State, index int, dir Direction) moveOutcom
 		to, ok, fell = beetle(p, &s, index, dir)
 	}
 	wallsChanged := s.Walls != old.Walls
+	entitiesChanged := bugsChanged(old.Bugs, s.Bugs)
 	move := Move{Kind: bug.Kind, Count: antCount(bug), From: from, Dir: dir, To: to}
 	if fell {
-		return moveOutcome{state: old, move: move, status: moveLost, reason: fmt.Sprintf("%s fell off the board", bug.Kind)}
+		fallen := bug.Kind
+		for _, other := range s.Bugs {
+			if !inside(other.Pos) {
+				fallen = other.Kind
+				break
+			}
+		}
+		return moveOutcome{state: old, move: move, status: moveLost, reason: fmt.Sprintf("%s fell off the board", fallen)}
 	}
-	if !ok || (to == from && !wallsChanged) {
+	if !ok || (to == from && !wallsChanged && !entitiesChanged) {
 		return moveOutcome{state: old, move: move, status: moveInvalid, reason: "the bug cannot move in that direction"}
 	}
 	if !positionHandled {
@@ -561,6 +572,11 @@ func moveAnt(p Puzzle, s *State, index int, dir Direction, occupied map[Pos]int)
 			return to, ok, fell
 		}
 		if other, blocked := occupied[next]; blocked {
+			if s.Bugs[other].Kind == Caterpillar && !s.Bugs[other].Egg {
+				changed, fell := nudgeCaterpillar(p, s.Bugs, occupied, other, dir)
+				s.Bugs[index].Pos = cur
+				return cur, changed, fell
+			}
 			if s.Bugs[other].Kind == Ant && !s.Bugs[other].Egg {
 				destinationCount := antCount(s.Bugs[other])
 				capacity := uint8(3) - destinationCount
@@ -607,7 +623,11 @@ func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int, cro
 		if p.Trampolines[next.R][next.C] {
 			return land(p, next, dir, occupied, bugs)
 		}
-		if _, blocked := occupied[next]; blocked {
+		if other, blocked := occupied[next]; blocked {
+			if bugs[other].Kind == Caterpillar && !bugs[other].Egg {
+				changed, fell := nudgeCaterpillar(p, bugs, occupied, other, dir)
+				return cur, cur != bug.Pos || changed, fell
+			}
 			return cur, cur != bug.Pos, false
 		}
 		cur = next
@@ -615,9 +635,65 @@ func walk(p Puzzle, bug Bug, dir Direction, limit int, occupied map[Pos]int, cro
 	return cur, true, false
 }
 
+// nudgeCaterpillar attempts one Snail-like step. If another hatched
+// Caterpillar blocks it, only the final movable Caterpillar in the chain moves.
+func nudgeCaterpillar(p Puzzle, bugs []Bug, occupied map[Pos]int, index int, dir Direction) (bool, bool) {
+	start := bugs[index].Pos
+	if hasWall(p, start, dir) {
+		return false, false
+	}
+	next := add(start, deltas[dir])
+	if !inside(next) || p.Terrain[next.R][next.C] == Void {
+		delete(occupied, start)
+		bugs[index].Pos = Pos{-1, -1}
+		return false, true
+	}
+	if p.Terrain[start.R][start.C] == Low && p.Terrain[next.R][next.C] == High {
+		return false, false
+	}
+	if p.Terrain[start.R][start.C] == High && p.Terrain[next.R][next.C] == Low || p.Trampolines[next.R][next.C] {
+		delete(occupied, start)
+		landing, ok, fell := land(p, next, dir, occupied, bugs)
+		if fell {
+			bugs[index].Pos = Pos{-1, -1}
+			return false, true
+		}
+		if !ok {
+			occupied[start] = index
+			return false, false
+		}
+		bugs[index].Pos = landing
+		occupied[landing] = index
+		return true, false
+	}
+	if other, blocked := occupied[next]; blocked {
+		if bugs[other].Kind == Caterpillar && !bugs[other].Egg {
+			return nudgeCaterpillar(p, bugs, occupied, other, dir)
+		}
+		return false, false
+	}
+	delete(occupied, start)
+	bugs[index].Pos = next
+	occupied[next] = index
+	return true, false
+}
+
+func bugsChanged(before, after []Bug) bool {
+	if len(before) != len(after) {
+		return true
+	}
+	for i := range before {
+		a, b := before[i], after[i]
+		if a.Kind != b.Kind || a.Pos != b.Pos || a.Egg != b.Egg || antCount(a) != antCount(b) || a.Direction != b.Direction || a.ID != b.ID {
+			return true
+		}
+	}
+	return false
+}
+
 func walkGoldBeetle(p Puzzle, s *State, bug Bug, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
 	cur := bug.Pos
-	if struckWalls, stop, blocked := goldBeetleBlockedMove(p, cur, dir, occupied); blocked {
+	if struckWalls, stop, blocked := goldBeetleBlockedMove(p, cur, dir, occupied, s.Bugs); blocked {
 		for _, wall := range struckWalls {
 			knockDownWall(&s.Walls, wall, dir)
 		}
@@ -642,11 +718,15 @@ func walkGoldBeetle(p Puzzle, s *State, bug Bug, dir Direction, occupied map[Pos
 			knockDownWall(&s.Walls, cur, dir)
 			return land(p, next, dir, occupied, s.Bugs)
 		}
-		if _, blocked := occupied[next]; blocked {
+		if other, blocked := occupied[next]; blocked {
 			// Even though the obstacle prevents entry, the Gold Beetle has
 			// struck this boundary and knocks down any wall on it.
 			hadWall := hasWall(p, cur, dir)
 			knockDownWall(&s.Walls, cur, dir)
+			if s.Bugs[other].Kind == Caterpillar && !s.Bugs[other].Egg {
+				changed, fell := nudgeCaterpillar(p, s.Bugs, occupied, other, dir)
+				return cur, cur != bug.Pos || hadWall || changed, fell
+			}
 			return cur, cur != bug.Pos || hadWall, false
 		}
 		knockDownWall(&s.Walls, cur, dir)
@@ -655,7 +735,7 @@ func walkGoldBeetle(p Puzzle, s *State, bug Bug, dir Direction, occupied map[Pos
 	return cur, true, false
 }
 
-func goldBeetleBlockedMove(p Puzzle, start Pos, dir Direction, occupied map[Pos]int) ([]Pos, Pos, bool) {
+func goldBeetleBlockedMove(p Puzzle, start Pos, dir Direction, occupied map[Pos]int, bugs []Bug) ([]Pos, Pos, bool) {
 	cur := start
 	var struck []Pos
 	for step := 0; step < 2; step++ {
@@ -669,7 +749,10 @@ func goldBeetleBlockedMove(p Puzzle, start Pos, dir Direction, occupied map[Pos]
 		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
 			return struck, cur, len(struck) > 0
 		}
-		if _, blocked := occupied[next]; blocked {
+		if other, blocked := occupied[next]; blocked {
+			if bugs[other].Kind == Caterpillar && !bugs[other].Egg {
+				return nil, start, false
+			}
 			return struck, cur, len(struck) > 0
 		}
 		// Landing mode begins here, so no later walking boundary is attempted.
@@ -738,7 +821,11 @@ func spider(p Puzzle, bug Bug, dir Direction, occupied map[Pos]int, bugs []Bug) 
 		if p.Trampolines[next.R][next.C] {
 			return land(p, next, dir, occupied, bugs)
 		}
-		if _, blocked := occupied[next]; blocked {
+		if other, blocked := occupied[next]; blocked {
+			if bugs[other].Kind == Caterpillar && !bugs[other].Egg {
+				changed, fell := nudgeCaterpillar(p, bugs, occupied, other, dir)
+				return cur, cur != bug.Pos || changed, fell
+			}
 			return cur, cur != bug.Pos, false
 		}
 		cur = next
@@ -768,6 +855,10 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 			return land(p, next, dir, occ, s.Bugs)
 		}
 		return next, true, false
+	}
+	if other := occ[next]; s.Bugs[other].Kind == Caterpillar && !s.Bugs[other].Egg {
+		changed, fell := nudgeCaterpillar(p, s.Bugs, occ, other, dir)
+		return start, changed, fell
 	}
 	if p.Terrain[start.R][start.C] == High {
 		return highBeetlePush(p, s, start, next, dir, occ)

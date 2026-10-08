@@ -47,6 +47,7 @@ Each board row contains at most ten cells:
 | `y` / `Y` | fly on a low / high platform |
 | `a` / `A` | ant on a low / high platform |
 | `q` / `Q` | scorpion on a low / high platform |
+| `k` / `K` | caterpillar on a low / high platform |
 
 The file must contain the same number of goal bugs and stars; pucks and
 scorpions are not goal bugs. Coordinates printed in solutions are one-based
@@ -75,6 +76,16 @@ the remainder stop together on the preceding square. Landing or bouncing ants
 do not combine; they bounce normally. Stars consume individual ants from a
 group, leaving any ants for which no star was available. Puzzle files place
 only individual ants (`a`/`A`); combined groups arise during play.
+
+Caterpillars (`k`/`K`) move one square like Snails. When a bug encounters a
+hatched Caterpillar as an obstacle during ordinary ground movement, the moving
+bug stops and nudges the Caterpillar one square in the same direction. This is
+a valid move even if the initiating bug never changes square. Landing or
+bouncing on a Caterpillar does not nudge it. If one Caterpillar nudges another,
+the effect travels along the contiguous line and only the last movable
+Caterpillar moves. A nudged Caterpillar obeys normal Snail rules for walls,
+platform height, trampolines, falling, and stars. Caterpillar eggs do not react
+to nudges.
 
 Rows containing only single-character cells can use the compact form shown
 above. To place multiple stars on one platform, write all ten cells separated
@@ -200,10 +211,10 @@ go run . puzzles/example.puzzle
 
 The solver uses an exact iterative-deepening A* search when its remaining-bug
 lower bound is safe, and prints each lower bound and the number of states
-searched. Eggs on stars contribute zero to the lower bound because they may be
-hatched as a side effect. For puzzles containing pushing beetles it falls back
-to breadth-first search and prints each depth. Both modes guarantee a shortest
-solution.
+searched. Eggs on stars and Caterpillars contribute zero to the lower bound
+because they may score as side effects of another bug's move. For puzzles
+containing pushing beetles it falls back to breadth-first search and prints
+each depth. Both modes guarantee a shortest solution.
 
 Or build a reusable binary:
 

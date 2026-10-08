@@ -25,6 +25,7 @@ The puzzle game is called Humbug2
 * A 'ladybird' moves two squares in the chosen direction per 'go', or until it encounters an obstacle (such as another bug).
 * A 'Pink Ladybird' is non-flying and moves three squares in the chosen direction per 'go', or until it encounters an obstacle.
 * A 'snail' is a non-flying bug that moves one square in the chosen direction per 'go'.
+* A 'caterpillar' moves like a snail. If a bug encounters a hatched caterpillar as an obstacle during ordinary ground movement, the moving bug stops and nudges the caterpillar one square in the same direction. The nudge makes the move valid even if the initiating bug remains on its original square. Landing or bouncing on a caterpillar does not nudge it. If a caterpillar is nudged into another hatched caterpillar, the nudge propagates along the contiguous line and only the last movable caterpillar moves. A nudged caterpillar follows normal snail rules for walls, platform height, trampolines, falling, and stars. A caterpillar egg does not react to a nudge.
 * A star is not an obstacle and does not prevent bugs from moving onto or over the square.
 The edge of the board is not an obstacle and does not prevent bugs from falling off the board.
 * A 'bee' flies two squares before dropping onto the square. Hence it can fly over obstacles.

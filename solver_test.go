@@ -71,6 +71,19 @@ func TestEggOnStarContributesZeroToSearchLowerBound(t *testing.T) {
 	}
 }
 
+func TestCaterpillarContributesZeroToSearchLowerBound(t *testing.T) {
+	state := State{Bugs: []Bug{
+		{Kind: Caterpillar, Pos: Pos{2, 2}},
+		{Kind: Ladybird, Pos: Pos{3, 3}},
+	}}
+	if got := searchLowerBound(state); got != 1 {
+		t.Fatalf("got lower bound %d, want 1", got)
+	}
+	if got := remainingBugCount(state); got != 2 {
+		t.Fatalf("caterpillar must still count as an unsolved bug; got %d", got)
+	}
+}
+
 func TestAStarDoesNotMistakeEggOnStarForSolvedPuzzle(t *testing.T) {
 	var p Puzzle
 	p.MaxMoves = 1
@@ -365,6 +378,124 @@ func TestSnailMovesOneSquare(t *testing.T) {
 	}
 	if moves[0].Kind != Snail || moves[0].Dir != Right || moves[0].To != (Pos{2, 3}) {
 		t.Fatalf("unexpected snail move: %+v", moves[0])
+	}
+}
+
+func TestCaterpillarMovesLikeSnail(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..k*......\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].Kind != Caterpillar || moves[0].Dir != Right {
+		t.Fatalf("unexpected caterpillar solution: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestBumpingCaterpillarIsValidWithoutInitiatorMoving(t *testing.T) {
+	p := puzzle(t, "max-moves 2\n..........\n..........\n.nk**.....\n")
+	state := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&state)
+	snail := bugAt(state.Bugs, Pos{2, 1})
+	next, move, ok := applyMove(p, state, snail, Right)
+	if !ok || move.From != move.To {
+		t.Fatalf("nudge should be valid while snail stays put: ok=%v move=%+v", ok, move)
+	}
+	positions := occupancy(next.Bugs)
+	if _, exists := positions[Pos{2, 1}]; !exists {
+		t.Fatalf("snail moved during nudge: %+v", next.Bugs)
+	}
+	if _, exists := positions[Pos{2, 2}]; exists || next.Stars[2][3] != 0 {
+		t.Fatalf("caterpillar should move onto and consume star: bugs=%+v stars=%v", next.Bugs, next.Stars[2])
+	}
+}
+
+func TestCaterpillarNudgeChainMovesOnlyLast(t *testing.T) {
+	var p Puzzle
+	for c := 0; c < 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	state := State{Bugs: []Bug{
+		{Kind: Snail, Pos: Pos{2, 0}},
+		{Kind: Caterpillar, Pos: Pos{2, 1}},
+		{Kind: Caterpillar, Pos: Pos{2, 2}},
+	}}
+	next, _, ok := applyMove(p, state, 0, Right)
+	if !ok {
+		t.Fatal("caterpillar chain nudge should be valid")
+	}
+	positions := occupancy(next.Bugs)
+	for _, want := range []Pos{{2, 0}, {2, 1}, {2, 3}} {
+		if _, exists := positions[want]; !exists {
+			t.Fatalf("missing entity at %+v after chain nudge: %+v", want, next.Bugs)
+		}
+	}
+	if _, exists := positions[Pos{2, 2}]; exists {
+		t.Fatalf("middle square should be vacated: %+v", next.Bugs)
+	}
+}
+
+func TestBlockedCaterpillarNudgeIsNullMove(t *testing.T) {
+	var p Puzzle
+	for c := 0; c < 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	state := State{Bugs: []Bug{
+		{Kind: Snail, Pos: Pos{2, 0}},
+		{Kind: Caterpillar, Pos: Pos{2, 1}},
+		{Kind: Caterpillar, Pos: Pos{2, 2}},
+		{Kind: Puck, Pos: Pos{2, 3}},
+	}}
+	if _, _, ok := applyMove(p, state, 0, Right); ok {
+		t.Fatal("blocked caterpillar chain should leave a null move")
+	}
+}
+
+func TestLandingOnCaterpillarDoesNotNudgeIt(t *testing.T) {
+	var p Puzzle
+	for c := 0; c < 3; c++ {
+		p.Terrain[2][c] = Low
+	}
+	state := State{Bugs: []Bug{{Kind: Grasshopper, Pos: Pos{2, 0}}, {Kind: Caterpillar, Pos: Pos{2, 1}}}}
+	next, _, ok := applyMove(p, state, 0, Right)
+	if !ok {
+		t.Fatal("grasshopper should bounce on caterpillar")
+	}
+	positions := occupancy(next.Bugs)
+	if i, exists := positions[Pos{2, 1}]; !exists || next.Bugs[i].Kind != Caterpillar {
+		t.Fatalf("landed-on caterpillar was nudged: %+v", next.Bugs)
+	}
+	if i, exists := positions[Pos{2, 2}]; !exists || next.Bugs[i].Kind != Grasshopper {
+		t.Fatalf("grasshopper did not bounce: %+v", next.Bugs)
+	}
+}
+
+func TestBeetleBumpUsesCaterpillarNudgeChain(t *testing.T) {
+	var p Puzzle
+	for c := 0; c < 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	state := State{Bugs: []Bug{
+		{Kind: Beetle, Pos: Pos{2, 0}},
+		{Kind: Caterpillar, Pos: Pos{2, 1}},
+		{Kind: Caterpillar, Pos: Pos{2, 2}},
+	}}
+	next, _, ok := applyMove(p, state, 0, Right)
+	if !ok {
+		t.Fatal("beetle caterpillar nudge should be valid")
+	}
+	positions := occupancy(next.Bugs)
+	for _, want := range []Pos{{2, 0}, {2, 1}, {2, 3}} {
+		if _, exists := positions[want]; !exists {
+			t.Fatalf("missing entity at %+v after beetle nudge: %+v", want, next.Bugs)
+		}
+	}
+}
+
+func TestNudgedCaterpillarCanFallAndLosePuzzle(t *testing.T) {
+	var p Puzzle
+	p.Terrain[2][0], p.Terrain[2][1] = Low, Low
+	state := State{Bugs: []Bug{{Kind: Snail, Pos: Pos{2, 0}}, {Kind: Caterpillar, Pos: Pos{2, 1}}}}
+	outcome := applyMoveDetailed(p, state, 0, Right)
+	if outcome.status != moveLost || outcome.reason != "caterpillar fell off the board" {
+		t.Fatalf("unexpected nudge fall: %+v", outcome)
 	}
 }
 
