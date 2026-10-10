@@ -12,11 +12,8 @@ func makeTerminalRaw(file *os.File) (func() error, bool, error) {
 	fd := file.Fd()
 	var original syscall.Termios
 	_, _, errno := syscall.Syscall6(syscall.SYS_IOCTL, fd, uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(&original)), 0, 0, 0)
-	if errno == syscall.ENOTTY {
-		return nil, false, nil
-	}
 	if errno != 0 {
-		return nil, false, errno
+		return nil, false, nil
 	}
 	raw := original
 	raw.Iflag &^= syscall.ICRNL | syscall.IXON
@@ -24,6 +21,9 @@ func makeTerminalRaw(file *os.File) (func() error, bool, error) {
 	raw.Cc[syscall.VMIN] = 1
 	raw.Cc[syscall.VTIME] = 0
 	_, _, errno = syscall.Syscall6(syscall.SYS_IOCTL, fd, uintptr(syscall.TCSETS), uintptr(unsafe.Pointer(&raw)), 0, 0, 0)
+	if errno == syscall.ENOTTY || errno == syscall.ENOTSUP || errno == syscall.EOPNOTSUPP {
+		return nil, false, nil
+	}
 	if errno != 0 {
 		return nil, false, errno
 	}

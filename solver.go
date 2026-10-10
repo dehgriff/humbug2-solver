@@ -870,10 +870,6 @@ func beetle(p Puzzle, s *State, index int, dir Direction) (Pos, bool, bool) {
 		}
 		return next, true, false
 	}
-	if other := occ[next]; s.Bugs[other].Kind == Caterpillar && !s.Bugs[other].Egg {
-		changed, fell := nudgeCaterpillar(p, s.Bugs, occ, other, dir)
-		return start, changed, fell
-	}
 	if p.Terrain[start.R][start.C] == High {
 		return highBeetlePush(p, s, start, next, dir, occ)
 	}

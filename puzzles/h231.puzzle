@@ -12,3 +12,19 @@ walls:
 wall 4 4 right
 wall 5 5 down
 wall 6 4 right
+solution:
+1 d r
+2 d d
+3 p d
+4 s r
+5 p r
+6 s d
+7 g r
+8 g d
+9 d l
+10 p l
+11 s d
+12 s l
+13 p d
+14 g r
+15 p l

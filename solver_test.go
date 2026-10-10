@@ -489,7 +489,7 @@ func TestLandingOnCaterpillarDoesNotNudgeIt(t *testing.T) {
 	}
 }
 
-func TestBeetleBumpUsesCaterpillarNudgeChain(t *testing.T) {
+func TestBeetlePushTakesPrecedenceOverCaterpillarNudge(t *testing.T) {
 	var p Puzzle
 	for c := 0; c < 4; c++ {
 		p.Terrain[2][c] = Low
@@ -501,13 +501,42 @@ func TestBeetleBumpUsesCaterpillarNudgeChain(t *testing.T) {
 	}}
 	next, _, ok := applyMove(p, state, 0, Right)
 	if !ok {
-		t.Fatal("beetle caterpillar nudge should be valid")
+		t.Fatal("beetle caterpillar push should be valid")
 	}
 	positions := occupancy(next.Bugs)
-	for _, want := range []Pos{{2, 0}, {2, 1}, {2, 3}} {
+	for _, want := range []Pos{{2, 1}, {2, 2}, {2, 3}} {
 		if _, exists := positions[want]; !exists {
-			t.Fatalf("missing entity at %+v after beetle nudge: %+v", want, next.Bugs)
+			t.Fatalf("missing entity at %+v after beetle push: %+v", want, next.Bugs)
 		}
+	}
+	if i := bugAt(next.Bugs, Pos{2, 1}); i < 0 || next.Bugs[i].Kind != Beetle {
+		t.Fatalf("beetle did not move into the pushed caterpillar's square: %+v", next.Bugs)
+	}
+}
+
+func TestD24BeetlePushesCaterpillarAfterFirstThreeMoves(t *testing.T) {
+	data, err := os.ReadFile("puzzles/d24.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	for moveNumber, command := range []string{"n l", "k u", "t l"} {
+		index, dir, err := parseStateMove(command, state)
+		if err != nil {
+			t.Fatalf("move %d (%s): %v", moveNumber+1, command, err)
+		}
+		outcome := applyMoveDetailed(p, state, index, dir)
+		if outcome.status != moveApplied {
+			t.Fatalf("move %d (%s) was not applied: %+v", moveNumber+1, command, outcome)
+		}
+		state = outcome.state
+	}
+	if i := bugAt(state.Bugs, Pos{0, 2}); i < 0 || state.Bugs[i].Kind != Beetle {
+		t.Fatalf("beetle should finish at (1,3) after pushing left: %+v", state.Bugs)
+	}
+	if i := bugAt(state.Bugs, Pos{0, 3}); i >= 0 && state.Bugs[i].Kind == Beetle {
+		t.Fatalf("beetle incorrectly remained at (1,4): %+v", state.Bugs)
 	}
 }
 
