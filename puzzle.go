@@ -94,6 +94,8 @@ type Puzzle struct {
 	Trampolines [BoardSize][BoardSize]bool
 	Walls       [BoardSize][BoardSize]uint8
 	Bugs        []Bug
+	Solution    []string
+	HasSolution bool
 }
 
 // ParsePuzzle reads a deliberately small, human-editable format.  Blank lines
@@ -113,10 +115,23 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	}
 	var directiveLines []sourceLine
 	inDirectives := false
+	inSolution := false
 	for s.Scan() {
 		lineNo++
 		line := strings.TrimSpace(s.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if inSolution {
+			fields := strings.Fields(line)
+			if len(fields) != 3 && len(fields) != 5 {
+				return p, fmt.Errorf("line %d: expected numbered solution move", lineNo)
+			}
+			number, err := strconv.Atoi(fields[0])
+			if err != nil || number != len(p.Solution)+1 {
+				return p, fmt.Errorf("line %d: expected solution move number %d", lineNo, len(p.Solution)+1)
+			}
+			p.Solution = append(p.Solution, strings.Join(fields[1:], " "))
 			continue
 		}
 		if len(rows) == 0 && strings.HasPrefix(strings.ToLower(line), "max-moves") {
@@ -136,6 +151,12 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			continue
 		}
 		section := strings.ToLower(strings.TrimSuffix(line, ":"))
+		if section == "solution" {
+			p.HasSolution = true
+			inSolution = true
+			inDirectives = true
+			continue
+		}
 		if section == "walls" || section == "eggs" {
 			inDirectives = true
 			continue

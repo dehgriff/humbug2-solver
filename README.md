@@ -234,6 +234,23 @@ go build -o humbug2 .
 ./humbug2 puzzles/example.puzzle
 ```
 
+When a solution is found, the solver appends or replaces a `solution:` section
+at the end of the puzzle file. It preserves everything before an existing
+section. The section contains one consecutively numbered move per line:
+
+```text
+solution:
+1 s r
+2 t d
+3 p 5 2 r
+```
+
+The short `TYPE DIRECTION` form is used when exactly one object of that bug
+type exists at that point in the solution. If the type is ambiguous, its
+one-based row and column are required. An unsuccessful search does not alter
+an existing solution section. Because `solution:` consumes the remainder of
+the file, it must be the final section.
+
 ### Interactive play
 
 Use `-play` to inspect and play a puzzle manually:
@@ -242,20 +259,42 @@ Use `-play` to inspect and play a puzzle manually:
 go run . -play puzzles/example.puzzle
 ```
 
-Moves use one-based row and column coordinates followed by a direction. Both
-short and full directions are accepted:
+Manual moves use the same notation as solution files. If a bug type is unique,
+coordinates may be omitted; otherwise they are required. Both short and full
+directions are accepted:
 
 ```text
-4 6 u
-4 6 up
+s r
+p 5 2 r
+p 5 2 right
 ```
+
+Coordinate-only input such as `5 2 r` is not accepted.
 
 After every move the program prints a coordinate-labelled board, remaining
 walls, move number, and whether the puzzle is in progress, solved, or lost.
+The display extends from `(1,1)` to the puzzle's lowest and rightmost platform,
+omitting unused trailing rows and columns while retaining leading dots for an
+offset board.
 Scorpions are displayed with their stable number and direction, such as `q1>`;
 eggs use an `e` suffix and grouped ants use their count. Enter `undo` to restore
 the previous state, including after the puzzle is over. Enter `help` or `quit`
 for the other interactive commands.
+
+### Solution playback
+
+Use `-play-soln` to validate and step through the puzzle's embedded solution:
+
+```sh
+go run . -play-soln puzzles/d12.puzzle
+```
+
+Use the right arrow key to advance one move, the left arrow key to go back, and
+`q` to quit; no Enter key is needed. When input is redirected rather than read
+from a terminal, the line commands `right`/`r`, `left`/`l`, and `quit` remain
+available. The complete board is displayed at every step. Playback rejects
+malformed moves, ambiguous shorthand, illegal moves, and files that do not
+finish the puzzle.
 
 The solver implements the rules in `game-rules.md`. Where those rules are
 implicit, it uses these interpretations:

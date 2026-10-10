@@ -16,7 +16,8 @@ func Play(p Puzzle, in io.Reader, out io.Writer) {
 	moveNumber := 0
 	over := false
 
-	fmt.Fprintln(out, "Enter a move as ROW COLUMN DIRECTION (for example: 4 6 u).")
+	fmt.Fprintln(out, "Enter TYPE DIRECTION when that type is unique (for example: s r).")
+	fmt.Fprintln(out, "Otherwise enter TYPE ROW COLUMN DIRECTION (for example: p 5 2 r).")
 	fmt.Fprintln(out, "Commands: undo, help, quit")
 	printPlayState(out, p, state, moveNumber, "Puzzle in progress.")
 
@@ -35,7 +36,7 @@ func Play(p Puzzle, in io.Reader, out io.Writer) {
 		case "quit", "q", "exit":
 			return
 		case "help", "h", "?":
-			fmt.Fprintln(out, "Move: ROW COLUMN u|r|d|l (coordinates are one-based).")
+			fmt.Fprintln(out, "Move: TYPE u|r|d|l, or TYPE ROW COLUMN u|r|d|l when that type is not unique.")
 			fmt.Fprintln(out, "Other commands: undo, quit")
 			continue
 		case "undo":
@@ -55,14 +56,9 @@ func Play(p Puzzle, in io.Reader, out io.Writer) {
 			continue
 		}
 
-		row, col, dir, err := parsePlayMove(line)
+		index, dir, err := parseStateMove(line, state)
 		if err != nil {
 			fmt.Fprintf(out, "Invalid input: %v\n", err)
-			continue
-		}
-		index := bugAt(state.Bugs, Pos{row, col})
-		if index < 0 {
-			fmt.Fprintf(out, "Invalid move: square (%d,%d) does not contain an object.\n", row+1, col+1)
 			continue
 		}
 		outcome := applyMoveDetailed(p, state, index, dir)
@@ -95,23 +91,6 @@ func Play(p Puzzle, in io.Reader, out io.Writer) {
 	}
 }
 
-func parsePlayMove(line string) (int, int, Direction, error) {
-	fields := strings.Fields(line)
-	if len(fields) != 3 {
-		return 0, 0, Up, fmt.Errorf("expected ROW COLUMN DIRECTION")
-	}
-	row, errRow := strconv.Atoi(fields[0])
-	col, errCol := strconv.Atoi(fields[1])
-	if errRow != nil || errCol != nil || row < 1 || row > BoardSize || col < 1 || col > BoardSize {
-		return 0, 0, Up, fmt.Errorf("row and column must be between 1 and %d", BoardSize)
-	}
-	dir, ok := parsePlayDirection(fields[2])
-	if !ok {
-		return 0, 0, Up, fmt.Errorf("direction must be u, r, d, l or its full name")
-	}
-	return row - 1, col - 1, dir, nil
-}
-
 func parsePlayDirection(value string) (Direction, bool) {
 	switch strings.ToLower(value) {
 	case "u", "up":
@@ -137,17 +116,44 @@ func bugAt(bugs []Bug, pos Pos) int {
 }
 
 func printPlayState(out io.Writer, p Puzzle, state State, moveNumber int, status string) {
-	fmt.Fprintf(out, "\nMove %d/%d — %s\n", moveNumber, p.MaxMoves, status)
-	fmt.Fprint(out, "       1     2     3     4     5     6     7     8     9    10\n")
-	for r := 0; r < BoardSize; r++ {
+	printBoardState(out, p, state, fmt.Sprintf("Move %d/%d — %s", moveNumber, p.MaxMoves, status))
+}
+
+func printBoardState(out io.Writer, p Puzzle, state State, heading string) {
+	fmt.Fprintf(out, "\n%s\n", heading)
+	rows, cols := renderedBoardSize(p)
+	fmt.Fprint(out, "   ")
+	for c := 1; c <= cols; c++ {
+		fmt.Fprintf(out, "%-5d ", c)
+	}
+	fmt.Fprintln(out)
+	for r := 0; r < rows; r++ {
 		fmt.Fprintf(out, "%2d ", r+1)
-		for c := 0; c < BoardSize; c++ {
+		for c := 0; c < cols; c++ {
 			fmt.Fprintf(out, "%-5s ", playCellToken(p, state, Pos{r, c}))
 		}
 		fmt.Fprintln(out)
 	}
 	printWalls(out, state.Walls)
 	fmt.Fprintln(out, "Tokens: e=egg, a2/a3=ant group, q1>/q2^=scorpion number/direction")
+}
+
+func renderedBoardSize(p Puzzle) (int, int) {
+	rows, cols := 1, 1
+	for r := 0; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			if p.Terrain[r][c] == Void {
+				continue
+			}
+			if r+1 > rows {
+				rows = r + 1
+			}
+			if c+1 > cols {
+				cols = c + 1
+			}
+		}
+	}
+	return rows, cols
 }
 
 func playCellToken(p Puzzle, state State, pos Pos) string {
