@@ -807,8 +807,9 @@ func land(p Puzzle, landing Pos, dir Direction, occupied map[Pos]int, bugs []Bug
 			return landing, true, false
 		}
 		if taken {
+			wasEgg := bugs[j].Egg
 			bugs[j].Egg = false
-			if bugs[j].Kind == Scorpion {
+			if bugs[j].Kind == Scorpion && !wasEgg {
 				bugs[j].Stunned = true
 			}
 		}

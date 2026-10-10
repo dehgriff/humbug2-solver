@@ -333,6 +333,22 @@ func TestLandingOnScorpionStunsItForMove(t *testing.T) {
 	}
 }
 
+func TestHatchedScorpionActsDuringCurrentMove(t *testing.T) {
+	var p Puzzle
+	for c := 0; c < 4; c++ {
+		p.Terrain[2][c] = Low
+	}
+	state := State{Bugs: []Bug{
+		{Kind: Grasshopper, Pos: Pos{2, 0}},
+		{Kind: Scorpion, Pos: Pos{2, 1}, Direction: Right, Egg: true},
+		{Kind: Snail, Pos: Pos{2, 3}},
+	}}
+	outcome := applyMoveDetailed(p, state, 0, Right)
+	if outcome.status != moveLost || outcome.reason != "a scorpion killed an adjacent bug" {
+		t.Fatalf("newly hatched scorpion should act during the current move: %+v", outcome)
+	}
+}
+
 func TestEggIsNotScorpionTarget(t *testing.T) {
 	var p Puzzle
 	for c := 0; c < 4; c++ {
