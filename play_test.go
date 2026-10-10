@@ -25,6 +25,8 @@ func TestInteractivePlaySolveAndUndo(t *testing.T) {
 	text := output.String()
 	for _, want := range []string{
 		"Move 0/2 — Puzzle in progress.",
+		"\x1b[1;32mn\x1b[0m",
+		"\x1b[33m*\x1b[0m",
 		"Played: snail at (3,3) right -> (3,4)",
 		"Move 1/2 — Puzzle solved.",
 		"Move 0/2 — Move undone. Puzzle in progress.",

@@ -278,7 +278,8 @@ omitting unused trailing rows and columns while retaining leading dots for an
 offset board.
 Scorpions are displayed with their stable number and direction, such as `q1>`;
 eggs use an `e` suffix and grouped ants use their count. Enter `undo` to restore
-the previous state, including after the puzzle is over. Enter `help` or `quit`
+the previous state, including after the puzzle is over. Bugs and other objects
+are shown in bold green, while star markers are yellow. Enter `help` or `quit`
 for the other interactive commands.
 
 ### Solution playback
@@ -292,9 +293,11 @@ go run . -play-soln puzzles/d12.puzzle
 Use the right arrow key to advance one move, the left arrow key to go back, and
 `q` to quit; no Enter key is needed. When input is redirected rather than read
 from a terminal, the line commands `right`/`r`, `left`/`l`, and `quit` remain
-available. The complete board is displayed at every step. Playback rejects
-malformed moves, ambiguous shorthand, illegal moves, and files that do not
-finish the puzzle.
+available. The complete board is displayed at every step. The next bug to move
+is bold red and followed by an arrow indicating its direction; other bugs are
+bold green, and star markers (`*`, `@`, `*3`, and so on) are yellow. Playback
+rejects malformed moves, ambiguous shorthand, illegal moves, and files that do
+not finish the puzzle.
 
 The solver implements the rules in `game-rules.md`. Where those rules are
 implicit, it uses these interpretations:

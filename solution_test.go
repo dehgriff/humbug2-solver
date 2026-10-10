@@ -60,6 +60,7 @@ func TestReadAndNavigateSolution(t *testing.T) {
 	text := output.String()
 	for _, want := range []string{
 		"Solution step 0/2. Next move: snail at (3,1) right -> (3,2)",
+		"\x1b[1;31mn>\x1b[0m",
 		"Applied: n 3 1 r",
 		"Solution step 1/2. Next move: snail at (3,3) right -> (3,4)",
 		"Solution step 2/2. Puzzle solved.",
@@ -68,6 +69,38 @@ func TestReadAndNavigateSolution(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Fatalf("output missing %q:\n%s", want, text)
 		}
+	}
+}
+
+func TestSolutionHighlightShowsNextMoveDirectionOnly(t *testing.T) {
+	p := twoSnailPuzzle(t)
+	p.HasSolution = true
+	p.Solution = []string{"n 3 1 r", "n r"}
+	replay, err := readSolution(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var output bytes.Buffer
+	printSolutionState(&output, p, replay, 0)
+	text := output.String()
+	if !strings.Contains(text, "\x1b[1;31mn>\x1b[0m") {
+		t.Fatalf("next bug is not bold red with its direction arrow:\n%s", text)
+	}
+	if !strings.Contains(text, "\x1b[1;32mn\x1b[0m") {
+		t.Fatalf("other bug is not bold green:\n%s", text)
+	}
+	if !strings.Contains(text, "\x1b[33m*\x1b[0m") {
+		t.Fatalf("star is not yellow:\n%s", text)
+	}
+	if count := strings.Count(text, "\x1b[1;31m"); count != 1 {
+		t.Fatalf("got %d highlighted cells, want 1:\n%s", count, text)
+	}
+
+	output.Reset()
+	printSolutionState(&output, p, replay, len(replay.moves))
+	if strings.Contains(output.String(), "\x1b[1;31m") {
+		t.Fatalf("solved board should not contain a next-move highlight:\n%s", output.String())
 	}
 }
 

@@ -386,6 +386,8 @@ func printSolutionState(out io.Writer, p Puzzle, replay solutionReplay, step int
 	heading := fmt.Sprintf("Solution step %d/%d. Puzzle solved.", step, len(replay.moves))
 	if step < len(replay.moves) {
 		heading = fmt.Sprintf("Solution step %d/%d. Next move: %s", step, len(replay.moves), replay.moves[step])
+		printBoardStateWithMove(out, p, replay.states[step], heading, &replay.moves[step])
+		return
 	}
-	printBoardState(out, p, replay.states[step], heading)
+	printBoardStateWithMove(out, p, replay.states[step], heading, nil)
 }

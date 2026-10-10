@@ -116,10 +116,18 @@ func bugAt(bugs []Bug, pos Pos) int {
 }
 
 func printPlayState(out io.Writer, p Puzzle, state State, moveNumber int, status string) {
-	printBoardState(out, p, state, fmt.Sprintf("Move %d/%d — %s", moveNumber, p.MaxMoves, status))
+	printBoardStateWithMove(out, p, state, fmt.Sprintf("Move %d/%d — %s", moveNumber, p.MaxMoves, status), nil)
 }
 
 func printBoardState(out io.Writer, p Puzzle, state State, heading string) {
+	printBoardStateDecorated(out, p, state, heading, nil, false)
+}
+
+func printBoardStateWithMove(out io.Writer, p Puzzle, state State, heading string, nextMove *Move) {
+	printBoardStateDecorated(out, p, state, heading, nextMove, true)
+}
+
+func printBoardStateDecorated(out io.Writer, p Puzzle, state State, heading string, nextMove *Move, solutionColours bool) {
 	fmt.Fprintf(out, "\n%s\n", heading)
 	rows, cols := renderedBoardSize(p)
 	fmt.Fprint(out, "   ")
@@ -130,12 +138,65 @@ func printBoardState(out io.Writer, p Puzzle, state State, heading string) {
 	for r := 0; r < rows; r++ {
 		fmt.Fprintf(out, "%2d ", r+1)
 		for c := 0; c < cols; c++ {
-			fmt.Fprintf(out, "%-5s ", playCellToken(p, state, Pos{r, c}))
+			pos := Pos{r, c}
+			token := playCellToken(p, state, pos)
+			if solutionColours {
+				writeSolutionCell(out, p, state, pos, token, nextMove)
+				continue
+			}
+			fmt.Fprintf(out, "%-5s ", token)
 		}
 		fmt.Fprintln(out)
 	}
 	printWalls(out, state.Walls)
 	fmt.Fprintln(out, "Tokens: e=egg, a2/a3=ant group, q1>/q2^=scorpion number/direction")
+}
+
+func writeSolutionCell(out io.Writer, p Puzzle, state State, pos Pos, token string, nextMove *Move) {
+	const (
+		boldRed   = "\x1b[1;31m"
+		boldGreen = "\x1b[1;32m"
+		yellow    = "\x1b[33m"
+		reset     = "\x1b[0m"
+	)
+
+	bugIndex := bugAt(state.Bugs, pos)
+	stars := state.Stars[pos.R][pos.C]
+	star := ""
+	bugToken := token
+	if stars > 0 {
+		star = starToken(p.Terrain[pos.R][pos.C], stars)
+		if bugIndex >= 0 {
+			bugToken = strings.TrimSuffix(token, star)
+		}
+	}
+
+	visibleLength := len(token)
+	if bugIndex >= 0 {
+		colour := boldGreen
+		if nextMove != nil && pos == nextMove.From {
+			colour = boldRed
+			bugToken += directionArrow(nextMove.Dir)
+			visibleLength++
+		}
+		fmt.Fprintf(out, "%s%s%s", colour, bugToken, reset)
+		if star != "" {
+			fmt.Fprintf(out, "%s%s%s", yellow, star, reset)
+		}
+	} else if star != "" {
+		fmt.Fprintf(out, "%s%s%s", yellow, star, reset)
+	} else {
+		fmt.Fprint(out, token)
+	}
+	writeCellPadding(out, visibleLength)
+}
+
+func writeCellPadding(out io.Writer, tokenLength int) {
+	padding := 6 - tokenLength
+	if padding < 1 {
+		padding = 1
+	}
+	fmt.Fprint(out, strings.Repeat(" ", padding))
 }
 
 func renderedBoardSize(p Puzzle) (int, int) {
