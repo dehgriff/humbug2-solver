@@ -8,8 +8,9 @@ import (
 
 func main() {
 	play := flag.Bool("play", false, "play the puzzle interactively instead of solving it")
+	safe := flag.Bool("safe", false, "use exact BFS for puzzles containing pushing beetles")
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play] PUZZLE\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play] [-safe] PUZZLE\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "Find a shortest Humbug2 solution up to the puzzle's max-moves limit.")
 	}
 	flag.Parse()
@@ -30,13 +31,13 @@ func main() {
 		Play(p, os.Stdin, os.Stdout)
 		return
 	}
-	moves, solved := SolveWithProgress(p, func(progress SearchProgress) {
+	moves, solved := SolveWithOptions(p, SolveOptions{Safe: *safe, Progress: func(progress SearchProgress) {
 		if progress.Algorithm == "astar" {
 			fmt.Printf("Lower bound %d: %d state(s) searched (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
 		} else {
 			fmt.Printf("Depth %d: %d state(s) (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
 		}
-	})
+	}})
 	if !solved {
 		fmt.Printf("No solution within %d moves.\n", p.MaxMoves)
 		return

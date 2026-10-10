@@ -1,9 +1,10 @@
 # Humbug2 solver
 
-This command-line program reads a human-editable 10x10 puzzle and uses a
-breadth-first search to find a solution with the fewest moves. Repeated board
-states are searched only once, falling moves are discarded, and no branch is
-searched beyond `max-moves`.
+This command-line program reads a human-editable 10x10 puzzle and searches for
+a solution with the fewest moves. It normally uses iterative-deepening A*, with
+an optional safe breadth-first fallback for pushing-Beetle puzzles. Repeated
+board states are pruned, falling moves are discarded, and no branch is searched
+beyond `max-moves`.
 
 ## Puzzle format
 
@@ -212,9 +213,19 @@ go run . puzzles/example.puzzle
 The solver uses an exact iterative-deepening A* search when its remaining-bug
 lower bound is safe, and prints each lower bound and the number of states
 searched. Eggs on stars and Caterpillars contribute zero to the lower bound
-because they may score as side effects of another bug's move. For puzzles
-containing pushing beetles it falls back to breadth-first search and prints
-each depth. Both modes guarantee a shortest solution.
+because they may score as side effects of another bug's move. By default, the
+same search is used for pushing Beetles under the simplifying assumption that
+a Beetle move clears at most one goal bug.
+
+Use `-safe` when that assumption may not hold:
+
+```sh
+go run . -safe puzzles/example.puzzle
+```
+
+Safe mode falls back to breadth-first search for puzzles containing a pushing
+Beetle and therefore retains the unconditional shortest-solution guarantee.
+For puzzles without one, `-safe` still uses exact iterative-deepening A*.
 
 Or build a reusable binary:
 

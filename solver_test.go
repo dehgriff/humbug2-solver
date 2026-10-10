@@ -103,12 +103,34 @@ func TestAStarDoesNotMistakeEggOnStarForSolvedPuzzle(t *testing.T) {
 	}
 }
 
-func TestSolveFallsBackToBFSForPushingBeetle(t *testing.T) {
+func TestDefaultSolveUsesAStarForPushingBeetle(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..t*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	var progress []SearchProgress
 	moves, ok := SolveWithProgress(p, func(update SearchProgress) { progress = append(progress, update) })
+	if !ok || len(moves) != 1 || len(progress) == 0 || progress[0].Algorithm != "astar" {
+		t.Fatalf("unexpected default Beetle search: ok=%v moves=%v progress=%+v", ok, moves, progress)
+	}
+}
+
+func TestSafeSolveFallsBackToBFSForPushingBeetle(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..t*......\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
+	var progress []SearchProgress
+	moves, ok := SolveWithOptions(p, SolveOptions{Safe: true, Progress: func(update SearchProgress) {
+		progress = append(progress, update)
+	}})
 	if !ok || len(moves) != 1 || len(progress) == 0 || progress[0].Algorithm != "bfs" {
-		t.Fatalf("unexpected BFS fallback: ok=%v moves=%v progress=%+v", ok, moves, progress)
+		t.Fatalf("unexpected safe BFS fallback: ok=%v moves=%v progress=%+v", ok, moves, progress)
+	}
+}
+
+func TestSafeSolveStillUsesAStarWithoutPushingBeetle(t *testing.T) {
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..n*......\n")
+	var progress []SearchProgress
+	moves, ok := SolveWithOptions(p, SolveOptions{Safe: true, Progress: func(update SearchProgress) {
+		progress = append(progress, update)
+	}})
+	if !ok || len(moves) != 1 || len(progress) == 0 || progress[0].Algorithm != "astar" {
+		t.Fatalf("unexpected safe non-Beetle search: ok=%v moves=%v progress=%+v", ok, moves, progress)
 	}
 }
 

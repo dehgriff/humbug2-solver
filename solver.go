@@ -56,22 +56,36 @@ type SearchProgress struct {
 	TotalStates int
 }
 
-func Solve(p Puzzle) ([]Move, bool) {
-	return SolveWithProgress(p, nil)
+type SolveOptions struct {
+	// Safe falls back to BFS when a pushing Beetle makes the A* bug-count
+	// estimate potentially overstate the number of moves still required.
+	Safe     bool
+	Progress func(SearchProgress)
 }
 
-// SolveWithProgress finds a shortest solution. It uses A* when the number of
-// remaining bugs is a safe lower bound, and otherwise falls back to BFS.
+func Solve(p Puzzle) ([]Move, bool) {
+	return SolveWithOptions(p, SolveOptions{})
+}
+
+// SolveWithProgress uses the default optimized search and reports progress.
 func SolveWithProgress(p Puzzle, progress func(SearchProgress)) ([]Move, bool) {
+	return SolveWithOptions(p, SolveOptions{Progress: progress})
+}
+
+// SolveWithOptions searches the puzzle. By default it assumes a pushing
+// Beetle clears at most one goal bug per move and uses A*. Safe mode uses BFS
+// for Beetle puzzles, preserving the shortest-solution guarantee without that
+// assumption.
+func SolveWithOptions(p Puzzle, options SolveOptions) ([]Move, bool) {
 	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&start)
 	if remainingBugCount(start) == 0 {
 		return nil, true
 	}
-	if canUseBugCountHeuristic(p) {
-		return solveAStar(p, start, progress)
+	if !options.Safe || !hasPushingBeetle(p) {
+		return solveAStar(p, start, options.Progress)
 	}
-	return solveBFS(p, start, progress)
+	return solveBFS(p, start, options.Progress)
 }
 
 func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, bool) {
@@ -184,20 +198,20 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 	return false
 }
 
-func canUseBugCountHeuristic(p Puzzle) bool {
+func hasPushingBeetle(p Puzzle) bool {
 	for _, bug := range p.Bugs {
 		if bug.Kind == Beetle {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
-// searchLowerBound is an admissible estimate of remaining player moves when
-// there is no pushing Beetle. Caterpillars contribute zero because a nudge can
-// remove one as a side effect while the initiating bug also scores. An egg
-// already on a star likewise contributes zero because landing can hatch it as
-// a side effect.
+// searchLowerBound estimates remaining player moves. It is admissible without
+// a pushing Beetle. The default optimized mode assumes a Beetle clears at most
+// one counted bug per move. Caterpillars contribute zero because a nudge can
+// score one as a side effect; an egg already on a star likewise contributes
+// zero because landing can hatch it as a side effect.
 func searchLowerBound(s State) int {
 	count := 0
 	for _, bug := range s.Bugs {
