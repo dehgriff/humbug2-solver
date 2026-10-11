@@ -262,14 +262,10 @@ func playCellToken(p Puzzle, state State, pos Pos) string {
 }
 
 func starToken(level Terrain, count uint8) string {
-	token := "*"
 	if level == High {
-		token = "@"
+		return []string{"", "!", "@", "#"}[count]
 	}
-	if count > 1 {
-		token += strconv.Itoa(int(count))
-	}
-	return token
+	return []string{"", "*", "2", "3"}[count]
 }
 
 func directionArrow(dir Direction) string {

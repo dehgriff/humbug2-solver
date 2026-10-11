@@ -9,7 +9,7 @@ beyond `max-moves`.
 ## Puzzle format
 
 ```text
-# Lines beginning with # and blank lines are ignored.
+# Comment lines use # followed by a space; blank lines are ignored.
 max-moves 8
 board:
 ..........
@@ -31,9 +31,10 @@ Each board row contains at most ten cells:
 | `.` | no platform |
 | `o` / `O` | low / high platform |
 | `x` / `X` | trampoline on a low / high platform |
-| `*` / `@` | one star on a low / high platform |
-| `*2`, `*3` | two or three stars on a low platform (spaced rows only) |
-| `@2`, `@3` | two or three stars on a high platform (spaced rows only) |
+| `*` or `1` | one star on a low platform |
+| `2` / `3` | two / three stars on a low platform |
+| `!` | one star on a high platform |
+| `@` / `#` | two / three stars on a high platform |
 | `l` / `L` | ladybird on a low / high platform |
 | `b` / `B` | bee on a low / high platform |
 | `s` / `S` | spider on a low / high platform |
@@ -90,16 +91,18 @@ Caterpillar moves. A nudged Caterpillar obeys normal Snail rules for walls,
 platform height, trampolines, falling, and stars. Caterpillar eggs do not react
 to nudges.
 
-Rows containing only single-character cells can use the compact form shown
-above. To place multiple stars on one platform, write all ten cells separated
-by spaces. For example, this row has three stars on its fourth low platform:
+Every board cell is exactly one character and board rows must not contain
+spaces. For example, this row contains three Snails followed by a low platform
+with three stars:
 
 ```text
-n n n *3 . . . . . .
+nnn3
 ```
 
-Each bug that stops on `*2`, `*3`, `@2`, or `@3` consumes one star. The other
-stars remain available to subsequent bugs.
+Each bug that stops on `2`, `3`, `@`, or `#` consumes one star. The other stars
+remain available to subsequent bugs. Because `#` is a board character, write
+comments as `# ` followed by the comment text; a syntactically valid board row
+beginning with `#` is treated as board data.
 
 Trailing void cells may be omitted from every board row, and trailing entirely
 void rows may also be omitted. These two boards are therefore equivalent:
@@ -321,7 +324,7 @@ Use the right arrow key to advance one move, the left arrow key to go back, and
 from a terminal, the line commands `right`/`r`, `left`/`l`, and `quit` remain
 available. The complete board is displayed at every step. The next bug to move
 is bold red and followed by an arrow indicating its direction; other bugs are
-bold green, and star markers (`*`, `@`, `*3`, and so on) are yellow. Playback
+bold green, and star markers (`*`, `2`, `!`, `@`, `#`, and so on) are yellow. Playback
 rejects malformed moves, ambiguous shorthand, illegal moves, and files that do
 not finish the puzzle.
 

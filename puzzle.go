@@ -123,7 +123,13 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	for s.Scan() {
 		lineNo++
 		line := strings.TrimSpace(s.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
+		if line == "" {
+			continue
+		}
+		// A high platform with three stars is represented by '#'. Within
+		// the board, only hash-prefixed text that is not a valid compact
+		// row is a comment. Hash lines outside the board remain comments.
+		if strings.HasPrefix(line, "#") && (inDirectives || inSolution || !isCompactBoardRow(line)) {
 			continue
 		}
 		if inSolution {
@@ -170,6 +176,9 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			inDirectives = true
 		}
 		if !inDirectives && len(rows) < BoardSize {
+			if strings.ContainsAny(line, " \t") {
+				return p, fmt.Errorf("line %d: board rows must not contain spaces", lineNo)
+			}
 			rows = append(rows, line)
 			continue
 		}
@@ -189,14 +198,10 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	}
 	stars := 0
 	for r, row := range rows {
-		cells := strings.Fields(row)
-		spaced := strings.ContainsAny(row, " \t") || row == "*2" || row == "*3" || row == "@2" || row == "@3"
-		if !spaced {
-			chars := []rune(row)
-			cells = make([]string, len(chars))
-			for i, ch := range chars {
-				cells[i] = string(ch)
-			}
+		chars := []rune(row)
+		cells := make([]string, len(chars))
+		for i, ch := range chars {
+			cells[i] = string(ch)
 		}
 		if len(cells) > BoardSize {
 			return p, fmt.Errorf("board row %d has more than %d cells", r+1, BoardSize)
@@ -217,13 +222,25 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 				p.Terrain[r][c], p.Trampolines[r][c] = Low, true
 			case "X":
 				p.Terrain[r][c], p.Trampolines[r][c] = High, true
-			case "*", "*1", "*2", "*3":
+			case "*", "1":
 				p.Terrain[r][c] = Low
-				p.Stars[r][c] = starCount(cell)
+				p.Stars[r][c] = 1
 				stars += int(p.Stars[r][c])
-			case "@", "@1", "@2", "@3":
+			case "2", "3":
+				p.Terrain[r][c] = Low
+				p.Stars[r][c] = uint8(cell[0] - '0')
+				stars += int(p.Stars[r][c])
+			case "!":
 				p.Terrain[r][c] = High
-				p.Stars[r][c] = starCount(cell)
+				p.Stars[r][c] = 1
+				stars += int(p.Stars[r][c])
+			case "@":
+				p.Terrain[r][c] = High
+				p.Stars[r][c] = 2
+				stars += int(p.Stars[r][c])
+			case "#":
+				p.Terrain[r][c] = High
+				p.Stars[r][c] = 3
 				stars += int(p.Stars[r][c])
 			case "l", "b", "s", "t", "n", "p", "g", "f", "c", "d", "u", "y", "a", "q", "k":
 				p.Terrain[r][c] = Low
@@ -374,11 +391,20 @@ func parseDirection(value string) (int, bool) {
 
 func oppositeWallDirection(dir int) int { return (dir + 2) % 4 }
 
-func starCount(cell string) uint8 {
-	if len(cell) == 1 {
-		return 1
+func isCompactBoardRow(line string) bool {
+	if line == "" || strings.ContainsAny(line, " \t") {
+		return false
 	}
-	return cell[1] - '0'
+	chars := []rune(line)
+	if len(chars) > BoardSize {
+		return false
+	}
+	for _, ch := range chars {
+		if !strings.ContainsRune(".oOxX*123!@#lLbBsStTnNpPgGfFcCdDuUyYaAqQkK", ch) {
+			return false
+		}
+	}
+	return true
 }
 
 func bugRune(ch rune) BugType {

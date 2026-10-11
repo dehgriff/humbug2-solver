@@ -1,16 +1,24 @@
 # A one-move ladybird puzzle.
 max-moves 12
 board:
-..D.......
-..L.......
-..o.......
-ooo**.....
-..o.......
-..o.......
-..........
-..........
-..........
-..........
+..D
+..L
+..o
+ooo**
+..o
+..o
 walls:
 wall 4 3 right
 wall 6 3 down
+solution:
+1 l d
+2 d d
+3 d l
+4 l d
+5 l d
+6 l u
+7 d r
+8 l d
+9 d r
+10 l u
+11 l r

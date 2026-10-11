@@ -1,4 +1,4 @@
-# A one-move ladybird puzzle.
+# A humbug2 puzzle
 max-moves 20
 board:
 ..P
@@ -6,8 +6,8 @@ board:
 ..O
 sxDgoo
 ....o
-. . O *3 o
-....o@
+..O3o
+....o!
 walls:
 wall 4 4 right
 wall 5 5 down

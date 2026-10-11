@@ -1,13 +1,23 @@
 # A one-move ladybird puzzle.
 max-moves 20
 board:
-l o o *3 . . . . . .
-oUUo......
-o.Uo......
-lobo......
-..........
-..........
-..........
-..........
-..........
-..........
+loo3
+oUUo
+o.Uo
+lobo
+solution:
+1 b u
+2 l 1 1 r
+3 b d
+4 l 1 2 r
+5 l r
+6 b l
+7 b u
+8 b r
+9 l r
+10 l u
+11 b d
+12 l u
+13 b l
+14 b u
+15 b r

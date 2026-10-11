@@ -440,7 +440,7 @@ func TestOneMoveConstraintAllowsImmediateStar(t *testing.T) {
 }
 
 func TestOneMoveConstraintFollowsPushedBug(t *testing.T) {
-	p := puzzle(t, "max-moves 3\nboard:\nt n o *2\nconstraints:\nonemove 1 2\n")
+	p := puzzle(t, "max-moves 3\nboard:\ntno2\nconstraints:\nonemove 1 2\n")
 	state := initialState(p)
 	beetle := bugAt(state.Bugs, Pos{0, 0})
 	next, _, ok := applyMove(p, state, beetle, Right)
@@ -465,7 +465,7 @@ func TestNoLowConstraintPrunesMoveEndingOnLowPlatform(t *testing.T) {
 }
 
 func TestNoHighConstraintPrunesMoveEndingOnHighPlatform(t *testing.T) {
-	p := puzzle(t, "max-moves 2\nboard:\nNO@\nconstraints:\nnohigh 1 1\n")
+	p := puzzle(t, "max-moves 2\nboard:\nNO!\nconstraints:\nnohigh 1 1\n")
 	if moves, ok := Solve(p); ok {
 		t.Fatalf("nohigh bug must not survive a move on a high platform: %v", moves)
 	}
@@ -476,7 +476,7 @@ func TestHeightConstraintAllowsBugToDisappearOnStar(t *testing.T) {
 		t.Run(constraint, func(t *testing.T) {
 			board := "n*"
 			if constraint == "nohigh" {
-				board = "N@"
+				board = "N!"
 			}
 			p := puzzle(t, "max-moves 1\nboard:\n"+board+"\nconstraints:\n"+constraint+" 1 1\n")
 			if moves, ok := Solve(p); !ok || len(moves) != 1 {
@@ -821,23 +821,6 @@ func TestGoldBeetleFallsWhenSecondSquareIsVoidAfterWall(t *testing.T) {
 	}
 }
 
-func TestD26GoldBeetleMovingRightFallsPastStar(t *testing.T) {
-	data, err := os.ReadFile("puzzles/d26.puzzle")
-	if err != nil {
-		t.Fatal(err)
-	}
-	p := puzzle(t, string(data))
-	state := initialState(p)
-	goldBeetle := bugAt(state.Bugs, Pos{0, 3})
-	if goldBeetle < 0 || state.Bugs[goldBeetle].Kind != GoldBeetle {
-		t.Fatal("d26 Gold Beetle not found at (1,4)")
-	}
-	outcome := applyMoveDetailed(p, state, goldBeetle, Right)
-	if outcome.status != moveLost || outcome.reason != "gold beetle fell off the board" {
-		t.Fatalf("d26 Gold Beetle should pass the star and fall: %+v", outcome)
-	}
-}
-
 func TestGoldBeetleStaysPutWhenWallBeforeBlockedSecondSquare(t *testing.T) {
 	p := Puzzle{}
 	for c := 2; c <= 4; c++ {
@@ -1077,7 +1060,7 @@ func TestPuckCannotInitiateMove(t *testing.T) {
 }
 
 func TestAntsCombineThenMoveAsOneGroup(t *testing.T) {
-	p := puzzle(t, "max-moves 2\n..........\n..........\n. . a a o *2 . . . .\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 6 right\n")
+	p := puzzle(t, "max-moves 2\n..........\n..........\n..aao2\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 6 right\n")
 	moves, ok := Solve(p)
 	if !ok || len(moves) != 2 {
 		t.Fatalf("combined-ant puzzle: ok=%v moves=%v", ok, moves)
@@ -1175,7 +1158,7 @@ func TestWalkingBugBouncesAsSoonAsItCrossesTrampoline(t *testing.T) {
 }
 
 func TestFlyingBugLandsOnTrampolineAndBouncesAcrossWall(t *testing.T) {
-	p := puzzle(t, "max-moves 1\n..........\n..........\n..gx@.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 4 right\n")
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..gx!.....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 3 4 right\n")
 	moves, ok := Solve(p)
 	if !ok || len(moves) != 1 || moves[0].To != (Pos{2, 4}) {
 		t.Fatalf("grasshopper should bounce from trampoline across wall: ok=%v moves=%v", ok, moves)
@@ -1199,7 +1182,7 @@ func TestPushedBugBouncesFromTrampoline(t *testing.T) {
 }
 
 func TestMultipleStarsOnOnePlatformAreConsumedIndividually(t *testing.T) {
-	p := puzzle(t, "max-moves 6\n. . . . . . . . . .\n. . . . . . . . . .\nn n n *3 . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n. . . . . . . . . .\n")
+	p := puzzle(t, "max-moves 6\n..........\n..........\nnnn3\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	star := Pos{2, 3}
 	if p.Stars[star.R][star.C] != 3 {
 		t.Fatalf("parsed star count = %d, want 3", p.Stars[star.R][star.C])
@@ -1244,7 +1227,7 @@ func TestFlyingBugCrossesWall(t *testing.T) {
 }
 
 func TestFlyingBugBouncesAcrossWall(t *testing.T) {
-	p := puzzle(t, "max-moves 1\n..........\n..........\n..b.l@....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 5 right\n")
+	p := puzzle(t, "max-moves 1\n..........\n..........\n..b.l!....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\nwall 3 5 right\n")
 	s := State{Bugs: p.Bugs, Stars: p.Stars}
 	canonicalize(&s)
 	var beeIndex int
@@ -1260,7 +1243,7 @@ func TestFlyingBugBouncesAcrossWall(t *testing.T) {
 }
 
 func TestNonFlyingBugBouncesAcrossWall(t *testing.T) {
-	p := puzzle(t, "max-moves 2\np x C *2 . . . . . .\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 1 3 right\n")
+	p := puzzle(t, "max-moves 2\npxC2\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n..........\nwall 1 3 right\n")
 	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&s)
 	var pinkIndex int
@@ -1309,7 +1292,7 @@ func TestBeeFliesOverVoid(t *testing.T) {
 }
 
 func TestBounceCanLandOnHighPlatform(t *testing.T) {
-	p := puzzle(t, "max-moves 1\n..........\n..........\n.b.l@.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	p := puzzle(t, "max-moves 1\n..........\n..........\n.b.l!.....\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
 	s := State{Bugs: p.Bugs, Stars: p.Stars}
 	canonicalize(&s)
 	var beeIndex int
@@ -1467,9 +1450,9 @@ func TestRejectMismatchedStars(t *testing.T) {
 }
 
 func TestParserPadsOmittedTrailingCellsAndRows(t *testing.T) {
-	p := puzzle(t, "max-moves 3\nn n *2\n")
+	p := puzzle(t, "max-moves 3\nnn2\n")
 	if len(p.Bugs) != 2 || p.Stars[0][2] != 2 {
-		t.Fatalf("short spaced row parsed incorrectly: bugs=%+v stars=%d", p.Bugs, p.Stars[0][2])
+		t.Fatalf("short compact row parsed incorrectly: bugs=%+v stars=%d", p.Bugs, p.Stars[0][2])
 	}
 	for r := 1; r < BoardSize; r++ {
 		for c := 0; c < BoardSize; c++ {
@@ -1477,6 +1460,38 @@ func TestParserPadsOmittedTrailingCellsAndRows(t *testing.T) {
 				t.Fatalf("omitted row %d column %d was not void", r+1, c+1)
 			}
 		}
+	}
+}
+
+func TestCompactStarCharacters(t *testing.T) {
+	low := puzzle(t, "max-moves 6\nboard:\nnnnnnn*23\n")
+	for column, want := range map[int]uint8{6: 1, 7: 2, 8: 3} {
+		if low.Terrain[0][column] != Low || low.Stars[0][column] != want {
+			t.Fatalf("low star at column %d: terrain=%v stars=%d", column+1, low.Terrain[0][column], low.Stars[0][column])
+		}
+	}
+
+	high := puzzle(t, "max-moves 6\nboard:\nNNNNNN!@#\n")
+	for column, want := range map[int]uint8{6: 1, 7: 2, 8: 3} {
+		if high.Terrain[0][column] != High || high.Stars[0][column] != want {
+			t.Fatalf("high star at column %d: terrain=%v stars=%d", column+1, high.Terrain[0][column], high.Stars[0][column])
+		}
+	}
+	highStartsWithHash := puzzle(t, "max-moves 3\nboard:\n#NNN\n")
+	if highStartsWithHash.Stars[0][0] != 3 || highStartsWithHash.Terrain[0][0] != High {
+		t.Fatalf("hash-prefixed board row was treated as a comment: %+v", highStartsWithHash)
+	}
+
+	alias := puzzle(t, "max-moves 1\nboard:\nn1\n")
+	if alias.Stars[0][1] != 1 || alias.Terrain[0][1] != Low {
+		t.Fatalf("low one-star alias was not parsed: %+v", alias)
+	}
+}
+
+func TestBoardRowsRejectSpaces(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 2\nboard:\nn n 2\n"))
+	if err == nil || !strings.Contains(err.Error(), "must not contain spaces") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

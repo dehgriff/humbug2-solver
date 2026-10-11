@@ -1,15 +1,21 @@
 # A one-move ladybird puzzle.
 max-moves 12
 board:
-.B........
-*3 b o o o . . . . .
-.l........
-.o........
-..........
-..........
-..........
-..........
-..........
-..........
+.B
+3booo
+.l
+.o
 walls:
 wall 2 5 right
+solution:
+1 b 1 2 d
+2 b 2 2 r
+3 b 4 2 u
+4 b 2 4 l
+5 b r
+6 l u
+7 b l
+8 l r
+9 l r
+10 l l
+11 l l

@@ -1,16 +1,21 @@
 # A one-move ladybird puzzle.
 max-moves 20
 board:
-@OXxlo....
-@2 S . . . * . . . .
-.Y...o....
-.T........
-..........
-..........
-..........
-..........
-..........
-..........
+!OXxlo
+@S...*
+.Y...o
+.T
 Eggs:
 egg 1 5
 egg 3 2
+solution:
+1 t u
+2 s r
+3 t u
+4 l l
+5 y d
+6 y r
+7 s d
+8 y u
+9 y l
+10 t l
