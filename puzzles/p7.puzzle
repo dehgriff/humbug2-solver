@@ -1,8 +1,0 @@
-# A one-move ladybird puzzle.
-max-moves 10
-board:
-.
-..LOS
-....N
-....o
-.O2*o
