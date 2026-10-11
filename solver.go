@@ -790,7 +790,9 @@ func goldBeetleBlockedMove(p Puzzle, start Pos, dir Direction, occupied map[Pos]
 		}
 		next := add(cur, deltas[dir])
 		if !inside(next) || p.Terrain[next.R][next.C] == Void {
-			return struck, cur, len(struck) > 0
+			// A missing platform is not a blocking obstacle. Let normal
+			// movement cross any preceding wall and then fall.
+			return nil, start, false
 		}
 		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
 			return struck, cur, len(struck) > 0
