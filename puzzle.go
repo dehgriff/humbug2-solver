@@ -78,13 +78,17 @@ const (
 type Pos struct{ R, C int }
 
 type Bug struct {
-	Kind      BugType
-	Pos       Pos
-	Egg       bool
-	Count     uint8
-	Direction Direction
-	ID        uint8
-	Stunned   bool
+	Kind         BugType
+	Pos          Pos
+	Egg          bool
+	Count        uint8
+	Direction    Direction
+	ID           uint8
+	ConstraintID uint8
+	OneMove      bool
+	NoLow        bool
+	NoHigh       bool
+	Stunned      bool
 }
 
 type Puzzle struct {
@@ -157,12 +161,12 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			inDirectives = true
 			continue
 		}
-		if section == "walls" || section == "eggs" {
+		if section == "walls" || section == "eggs" || section == "constraints" {
 			inDirectives = true
 			continue
 		}
 		fields := strings.Fields(line)
-		if len(fields) > 0 && (strings.EqualFold(fields[0], "wall") || strings.EqualFold(fields[0], "egg")) {
+		if len(fields) > 0 && (strings.EqualFold(fields[0], "wall") || strings.EqualFold(fields[0], "egg") || strings.EqualFold(fields[0], "onemove") || strings.EqualFold(fields[0], "nolow") || strings.EqualFold(fields[0], "nohigh")) {
 			inDirectives = true
 		}
 		if !inDirectives && len(rows) < BoardSize {
@@ -246,8 +250,55 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	if stars != bugCount {
 		return p, fmt.Errorf("puzzle has %d bugs but %d stars", bugCount, stars)
 	}
+	nextConstraintID := uint8(1)
 	for _, line := range directiveLines {
 		fields := strings.Fields(line.text)
+		constraint := ""
+		if len(fields) == 3 {
+			switch strings.ToLower(fields[0]) {
+			case "onemove", "nolow", "nohigh":
+				constraint = strings.ToLower(fields[0])
+			}
+		}
+		if constraint != "" {
+			r, errR := strconv.Atoi(fields[1])
+			c, errC := strconv.Atoi(fields[2])
+			if errR != nil || errC != nil || r < 1 || r > BoardSize || c < 1 || c > BoardSize {
+				return p, fmt.Errorf("line %d: invalid %s position", line.number, constraint)
+			}
+			found := false
+			for i := range p.Bugs {
+				if p.Bugs[i].Pos != (Pos{r - 1, c - 1}) {
+					continue
+				}
+				if p.Bugs[i].Kind == Puck || p.Bugs[i].Kind == Scorpion {
+					return p, fmt.Errorf("line %d: %s position must contain a player-movable bug", line.number, constraint)
+				}
+				bug := &p.Bugs[i]
+				if bug.ConstraintID == 0 {
+					bug.ConstraintID = nextConstraintID
+					nextConstraintID++
+				}
+				var duplicate bool
+				switch constraint {
+				case "onemove":
+					duplicate, bug.OneMove = bug.OneMove, true
+				case "nolow":
+					duplicate, bug.NoLow = bug.NoLow, true
+				case "nohigh":
+					duplicate, bug.NoHigh = bug.NoHigh, true
+				}
+				if duplicate {
+					return p, fmt.Errorf("line %d: bug already has a %s constraint", line.number, constraint)
+				}
+				found = true
+				break
+			}
+			if !found {
+				return p, fmt.Errorf("line %d: %s position does not contain a bug", line.number, constraint)
+			}
+			continue
+		}
 		if len(fields) == 3 && strings.EqualFold(fields[0], "egg") {
 			r, errR := strconv.Atoi(fields[1])
 			c, errC := strconv.Atoi(fields[2])
@@ -277,7 +328,7 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			continue
 		}
 		if len(fields) != 4 || !strings.EqualFold(fields[0], "wall") {
-			return p, fmt.Errorf("line %d: expected a wall or egg directive", line.number)
+			return p, fmt.Errorf("line %d: expected a wall, egg, or constraint directive", line.number)
 		}
 		r, errR := strconv.Atoi(fields[1])
 		c, errC := strconv.Atoi(fields[2])

@@ -251,6 +251,30 @@ one-based row and column are required. An unsuccessful search does not alter
 an existing solution section. Because `solution:` consumes the remainder of
 the file, it must be the final section.
 
+### Search constraints
+
+An optional `constraints:` section can restrict the solver's search. The
+`onemove ROW COLUMN` directive identifies a player-movable bug by its starting
+coordinate:
+
+```text
+constraints:
+onemove 1 3
+nolow 4 6
+nohigh 3 4
+```
+
+The coordinate is one-based. Other bugs may move first, and the marked bug may
+be pushed in the meantime. Once the marked bug is selected for its own first
+move, that move must remove it by reaching a star; otherwise that search branch
+is discarded. Multiple bugs may each have an `onemove` constraint.
+
+The `nolow ROW COLUMN` and `nohigh ROW COLUMN` directives discard a branch if
+the marked bug finishes one of its own moves on a low or high platform,
+respectively. A bug that reaches a star and disappears has not finished on the
+platform, so that move is allowed. Constraint types may be combined on the same
+bug, and their coordinates always refer to the starting board.
+
 ### Interactive play
 
 Use `-play` to inspect and play a puzzle manually:

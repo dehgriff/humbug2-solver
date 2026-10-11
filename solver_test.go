@@ -419,6 +419,88 @@ func TestSnailMovesOneSquare(t *testing.T) {
 	}
 }
 
+func TestOneMoveConstraintPrunesBugThatDoesNotReachStar(t *testing.T) {
+	unconstrained := puzzle(t, "max-moves 2\nboard:\nno*\n")
+	if moves, ok := Solve(unconstrained); !ok || len(moves) != 2 {
+		t.Fatalf("unconstrained puzzle should solve in two moves: ok=%v moves=%v", ok, moves)
+	}
+
+	constrained := puzzle(t, "max-moves 2\nboard:\nno*\nconstraints:\nonemove 1 1\n")
+	if moves, ok := Solve(constrained); ok {
+		t.Fatalf("onemove bug must reach its star on its first move: %v", moves)
+	}
+}
+
+func TestOneMoveConstraintAllowsImmediateStar(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nn*\nconstraints:\nonemove 1 1\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].Dir != Right {
+		t.Fatalf("immediate scoring move should satisfy onemove: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestOneMoveConstraintFollowsPushedBug(t *testing.T) {
+	p := puzzle(t, "max-moves 3\nboard:\nt n o *2\nconstraints:\nonemove 1 2\n")
+	state := initialState(p)
+	beetle := bugAt(state.Bugs, Pos{0, 0})
+	next, _, ok := applyMove(p, state, beetle, Right)
+	if !ok {
+		t.Fatal("beetle push should be valid")
+	}
+	snail := bugAt(next.Bugs, Pos{0, 2})
+	if snail < 0 || next.Bugs[snail].Kind != Snail || !next.Bugs[snail].OneMove {
+		t.Fatalf("onemove constraint did not follow pushed snail: %+v", next.Bugs)
+	}
+	afterScore, _, ok := applyMove(p, next, snail, Right)
+	if !ok || violatesMoveConstraints(p, next.Bugs[snail], afterScore) {
+		t.Fatalf("pushed snail should satisfy constraint by scoring on its first own move: ok=%v bugs=%+v", ok, afterScore.Bugs)
+	}
+}
+
+func TestNoLowConstraintPrunesMoveEndingOnLowPlatform(t *testing.T) {
+	p := puzzle(t, "max-moves 2\nboard:\nno*\nconstraints:\nnolow 1 1\n")
+	if moves, ok := Solve(p); ok {
+		t.Fatalf("nolow bug must not survive a move on a low platform: %v", moves)
+	}
+}
+
+func TestNoHighConstraintPrunesMoveEndingOnHighPlatform(t *testing.T) {
+	p := puzzle(t, "max-moves 2\nboard:\nNO@\nconstraints:\nnohigh 1 1\n")
+	if moves, ok := Solve(p); ok {
+		t.Fatalf("nohigh bug must not survive a move on a high platform: %v", moves)
+	}
+}
+
+func TestHeightConstraintAllowsBugToDisappearOnStar(t *testing.T) {
+	for _, constraint := range []string{"nolow", "nohigh"} {
+		t.Run(constraint, func(t *testing.T) {
+			board := "n*"
+			if constraint == "nohigh" {
+				board = "N@"
+			}
+			p := puzzle(t, "max-moves 1\nboard:\n"+board+"\nconstraints:\n"+constraint+" 1 1\n")
+			if moves, ok := Solve(p); !ok || len(moves) != 1 {
+				t.Fatalf("scoring move should satisfy %s: ok=%v moves=%v", constraint, ok, moves)
+			}
+		})
+	}
+}
+
+func TestMultipleConstraintsCanMarkSameBug(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nn*\nconstraints:\nonemove 1 1\nnolow 1 1\nnohigh 1 1\n")
+	bug := p.Bugs[0]
+	if bug.ConstraintID == 0 || !bug.OneMove || !bug.NoLow || !bug.NoHigh {
+		t.Fatalf("constraints were not combined on bug: %+v", bug)
+	}
+}
+
+func TestParseOneMoveConstraintValidatesCoordinate(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\nboard:\nn*\nconstraints:\nonemove 1 2\n"))
+	if err == nil || !strings.Contains(err.Error(), "does not contain a bug") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestCaterpillarMovesLikeSnail(t *testing.T) {
 	p := puzzle(t, "max-moves 1\n..........\n..........\n..k*......\n")
 	moves, ok := Solve(p)

@@ -112,6 +112,9 @@ func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, boo
 					if !ok { // includes blocked/no-op and falling branches
 						continue
 					}
+					if violatesMoveConstraints(p, cur.state.Bugs[i], next) {
+						continue
+					}
 					if remainingBugCount(next) == 0 {
 						return buildPath(nodes, head, move), true
 					}
@@ -170,6 +173,9 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 			if !ok {
 				continue
 			}
+			if violatesMoveConstraints(p, state.Bugs[i], next) {
+				continue
+			}
 			h := searchLowerBound(next)
 			if depth+1+h <= bound {
 				successors = append(successors, successor{state: next, move: move, h: h})
@@ -194,6 +200,23 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 			return true
 		}
 		*path = (*path)[:len(*path)-1]
+	}
+	return false
+}
+
+func violatesMoveConstraints(p Puzzle, moved Bug, next State) bool {
+	if moved.ConstraintID == 0 {
+		return false
+	}
+	for _, bug := range next.Bugs {
+		if bug.ConstraintID != moved.ConstraintID {
+			continue
+		}
+		if moved.OneMove {
+			return true
+		}
+		level := p.Terrain[bug.Pos.R][bug.Pos.C]
+		return moved.NoLow && level == Low || moved.NoHigh && level == High
 	}
 	return false
 }
@@ -603,6 +626,15 @@ func moveAnt(p Puzzle, s *State, index int, dir Direction, occupied map[Pos]int)
 					s.Bugs[other].Count = destinationCount + joined
 					s.Bugs[index].Count = moving - joined
 					if s.Bugs[index].Count == 0 {
+						// Preserve the selected ant's identity long enough for the
+						// search to reject a constrained ant that merely joined a
+						// group instead of reaching a star.
+						if s.Bugs[index].ConstraintID != 0 {
+							s.Bugs[other].ConstraintID = s.Bugs[index].ConstraintID
+							s.Bugs[other].OneMove = s.Bugs[index].OneMove
+							s.Bugs[other].NoLow = s.Bugs[index].NoLow
+							s.Bugs[other].NoHigh = s.Bugs[index].NoHigh
+						}
 						s.Bugs[index].Pos = Pos{-1, -1}
 					} else {
 						s.Bugs[index].Pos = cur
@@ -698,7 +730,7 @@ func bugsChanged(before, after []Bug) bool {
 	}
 	for i := range before {
 		a, b := before[i], after[i]
-		if a.Kind != b.Kind || a.Pos != b.Pos || a.Egg != b.Egg || antCount(a) != antCount(b) || a.Direction != b.Direction || a.ID != b.ID {
+		if a.Kind != b.Kind || a.Pos != b.Pos || a.Egg != b.Egg || antCount(a) != antCount(b) || a.Direction != b.Direction || a.ID != b.ID || a.ConstraintID != b.ConstraintID || a.OneMove != b.OneMove || a.NoLow != b.NoLow || a.NoHigh != b.NoHigh {
 			return true
 		}
 	}
@@ -1071,6 +1103,18 @@ func searchStateKey(s State, includeWalls bool) string {
 			b.WriteByte(0)
 		}
 		b.WriteByte(antCount(bug))
+		b.WriteByte(bug.ConstraintID)
+		var constraints byte
+		if bug.OneMove {
+			constraints |= 1
+		}
+		if bug.NoLow {
+			constraints |= 2
+		}
+		if bug.NoHigh {
+			constraints |= 4
+		}
+		b.WriteByte(constraints)
 		if bug.Kind == Scorpion {
 			b.WriteByte(byte(bug.Direction))
 			b.WriteByte(bug.ID)
