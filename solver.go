@@ -296,16 +296,28 @@ func updatePushedScorpionDirections(before, after []Bug) {
 }
 
 func moveScorpions(p Puzzle, s *State) bool {
-	maxID := -1
+	ok, _ := moveScorpionsInOrder(p, s)
+	return ok
+}
+
+func moveScorpionsInOrder(p Puzzle, s *State) (bool, []uint8) {
+	remaining := make(map[uint8]bool)
 	for _, bug := range s.Bugs {
-		if bug.Kind == Scorpion && int(bug.ID) > maxID {
-			maxID = int(bug.ID)
+		if bug.Kind == Scorpion && !bug.Egg && inside(bug.Pos) {
+			remaining[bug.ID] = true
 		}
 	}
-	for id := 0; id <= maxID; id++ {
+	order := make([]uint8, 0, len(remaining))
+	for len(remaining) > 0 {
+		id, found := nextScorpion(p, s.Bugs, remaining)
+		if !found {
+			break
+		}
+		delete(remaining, id)
+		order = append(order, id)
 		index := -1
 		for i := range s.Bugs {
-			if s.Bugs[i].Kind == Scorpion && int(s.Bugs[i].ID) == id {
+			if s.Bugs[i].Kind == Scorpion && s.Bugs[i].ID == id {
 				index = i
 				break
 			}
@@ -317,7 +329,7 @@ func moveScorpions(p Puzzle, s *State) bool {
 			continue
 		}
 		if scorpionAdjacentToBug(p, s.Bugs, index) {
-			return false
+			return false, order
 		}
 		dir, target, moves := scorpionMovePlan(p, s.Bugs, index)
 		if !moves {
@@ -346,7 +358,67 @@ func moveScorpions(p Puzzle, s *State) bool {
 		removeGoneEntities(s)
 		consumeStars(s)
 	}
-	return true
+	return true, order
+}
+
+func nextScorpion(p Puzzle, bugs []Bug, remaining map[uint8]bool) (uint8, bool) {
+	for _, id := range scorpionTurnOrder(p, bugs) {
+		if remaining[id] {
+			return id, true
+		}
+	}
+	return 0, false
+}
+
+// scorpionTurnOrder ranks the scorpions for the board's current state. Each
+// scorpion prefers its nearest target on a completely clear route; only when it
+// has no clear route may its distance pass through other scorpions. Stable IDs
+// break equal-distance ties.
+func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
+	type candidate struct {
+		id       byte
+		distance int
+		clear    bool
+	}
+	candidates := make([]candidate, 0)
+	for index, bug := range bugs {
+		if bug.Kind != Scorpion || bug.Egg || !inside(bug.Pos) {
+			continue
+		}
+		distance := BoardSize*BoardSize + 1
+		clear := false
+		if d, hasClearPath, ok := scorpionTargetDistance(p, bugs, index); ok {
+			distance = d
+			clear = hasClearPath
+		}
+		candidates = append(candidates, candidate{id: bug.ID, distance: distance, clear: clear})
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].clear != candidates[j].clear {
+			return candidates[i].clear
+		}
+		if candidates[i].distance != candidates[j].distance {
+			return candidates[i].distance < candidates[j].distance
+		}
+		return candidates[i].id < candidates[j].id
+	})
+	order := make([]byte, len(candidates))
+	for i, candidate := range candidates {
+		order[i] = candidate.id
+	}
+	return order
+}
+
+func scorpionTargetDistance(p Puzzle, bugs []Bug, scorpion int) (int, bool, bool) {
+	from := bugs[scorpion].Pos
+	occupied := occupancy(bugs)
+	delete(occupied, from)
+	for _, allowScorpions := range []bool{false, true} {
+		if distance, _, ok := distanceToReachableBug(p, bugs, from, p.Terrain[from.R][from.C], occupied, allowScorpions); ok {
+			return distance, !allowScorpions, true
+		}
+	}
+	return 0, false, false
 }
 
 func scorpionAdjacentToBug(p Puzzle, bugs []Bug, scorpion int) bool {
@@ -387,33 +459,40 @@ func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool)
 		Direction((int(pointing) + 3) % len(directions)),
 		Direction((int(pointing) + 2) % len(directions)),
 	}
-	bestDistance := BoardSize*BoardSize + 1
-	bestDirection := Up
-	bestTarget := Pos{}
-	found := false
-	for _, dir := range order {
-		if hasWall(p, from, dir) {
-			continue
+	for _, allowScorpions := range []bool{false, true} {
+		bestDistance := BoardSize*BoardSize + 1
+		bestDirection := Up
+		bestTarget := Pos{}
+		found := false
+		for _, dir := range order {
+			if hasWall(p, from, dir) {
+				continue
+			}
+			first := add(from, deltas[dir])
+			if !inside(first) || p.Terrain[first.R][first.C] != level {
+				continue
+			}
+			// A scorpion may plan a future route through another scorpion,
+			// but it still cannot step onto an occupied adjacent square.
+			if _, blocked := occupied[first]; blocked {
+				continue
+			}
+			distance, target, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions)
+			if ok && distance+1 < bestDistance {
+				bestDistance = distance + 1
+				bestDirection = dir
+				bestTarget = target
+				found = true
+			}
 		}
-		first := add(from, deltas[dir])
-		if !inside(first) || p.Terrain[first.R][first.C] != level {
-			continue
-		}
-		if _, blocked := occupied[first]; blocked {
-			continue
-		}
-		distance, target, ok := distanceToReachableBug(p, bugs, first, level, occupied)
-		if ok && distance+1 < bestDistance {
-			bestDistance = distance + 1
-			bestDirection = dir
-			bestTarget = target
-			found = true
+		if found {
+			return bestDirection, bestTarget, true
 		}
 	}
-	return bestDirection, bestTarget, found
+	return Up, Pos{}, false
 }
 
-func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occupied map[Pos]int) (int, Pos, bool) {
+func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occupied map[Pos]int, allowScorpions bool) (int, Pos, bool) {
 	type step struct {
 		pos      Pos
 		distance int
@@ -436,7 +515,9 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
 					return cur.distance + 1, next, true
 				}
-				continue
+				if bug.Kind != Scorpion || !allowScorpions {
+					continue
+				}
 			}
 			if visited[next.R][next.C] {
 				continue
@@ -486,10 +567,11 @@ const (
 )
 
 type moveOutcome struct {
-	state  State
-	move   Move
-	status moveStatus
-	reason string
+	state         State
+	move          Move
+	status        moveStatus
+	reason        string
+	scorpionOrder []uint8
 }
 
 func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool) {
@@ -566,15 +648,16 @@ func applyMoveDetailed(p Puzzle, old State, index int, dir Direction) moveOutcom
 	updatePushedScorpionDirections(old.Bugs, s.Bugs)
 	// A Gold Beetle may have changed the walls during the player move.
 	p.Walls = s.Walls
-	if !moveScorpions(p, &s) {
-		return moveOutcome{state: s, move: move, status: moveLost, reason: "a scorpion killed an adjacent bug"}
+	scorpionsOK, scorpionOrder := moveScorpionsInOrder(p, &s)
+	if !scorpionsOK {
+		return moveOutcome{state: s, move: move, status: moveLost, reason: "a scorpion killed an adjacent bug", scorpionOrder: scorpionOrder}
 	}
 	removeGoneEntities(&s)
 	for i := range s.Bugs {
 		s.Bugs[i].Stunned = false
 	}
 	canonicalize(&s)
-	return moveOutcome{state: s, move: move, status: moveApplied}
+	return moveOutcome{state: s, move: move, status: moveApplied, scorpionOrder: scorpionOrder}
 }
 
 func moveAnt(p Puzzle, s *State, index int, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {

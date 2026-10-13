@@ -72,6 +72,19 @@ func TestReadAndNavigateSolution(t *testing.T) {
 	}
 }
 
+func TestPlaySolutionPrintsScorpionMovementOrder(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nn*\nQQ\n")
+	p.HasSolution = true
+	p.Solution = []string{"n r"}
+	var output bytes.Buffer
+	if err := PlaySolution(p, strings.NewReader("right\nquit\n"), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), "Scorpion movement order: 1, 2") {
+		t.Fatalf("movement order diagnostic missing:\n%s", output.String())
+	}
+}
+
 func TestSolutionHighlightShowsNextMoveDirectionOnly(t *testing.T) {
 	p := twoSnailPuzzle(t)
 	p.HasSolution = true

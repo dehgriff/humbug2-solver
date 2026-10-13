@@ -72,6 +72,7 @@ func Play(p Puzzle, in io.Reader, out io.Writer) {
 		if outcome.status == moveApplied {
 			fmt.Fprintf(out, "Played: %s\n", outcome.move)
 		}
+		printScorpionOrder(out, outcome.scorpionOrder)
 		if outcome.status == moveLost {
 			over = true
 			printPlayState(out, p, state, moveNumber, "Puzzle over: "+outcome.reason+".")
@@ -89,6 +90,17 @@ func Play(p Puzzle, in io.Reader, out io.Writer) {
 		}
 		printPlayState(out, p, state, moveNumber, "Puzzle in progress.")
 	}
+}
+
+func printScorpionOrder(out io.Writer, order []uint8) {
+	if len(order) < 2 {
+		return
+	}
+	labels := make([]string, len(order))
+	for i, id := range order {
+		labels[i] = strconv.Itoa(int(id) + 1)
+	}
+	fmt.Fprintf(out, "Scorpion movement order: %s\n", strings.Join(labels, ", "))
 }
 
 func parsePlayDirection(value string) (Direction, bool) {

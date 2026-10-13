@@ -209,9 +209,10 @@ func parseStateMove(line string, state State) (int, Direction, error) {
 }
 
 type solutionReplay struct {
-	lines  []string
-	moves  []Move
-	states []State
+	lines          []string
+	moves          []Move
+	states         []State
+	scorpionOrders [][]uint8
 }
 
 func readSolution(p Puzzle) (solutionReplay, error) {
@@ -232,6 +233,7 @@ func readSolution(p Puzzle) (solutionReplay, error) {
 		replay.lines = append(replay.lines, line)
 		replay.moves = append(replay.moves, outcome.move)
 		replay.states = append(replay.states, outcome.state)
+		replay.scorpionOrders = append(replay.scorpionOrders, outcome.scorpionOrder)
 		state = outcome.state
 	}
 	if remainingBugCount(state) != 0 {
@@ -383,6 +385,9 @@ func readNavigationKey(in io.Reader) (navigationKey, error) {
 }
 
 func printSolutionState(out io.Writer, p Puzzle, replay solutionReplay, step int) {
+	if step > 0 {
+		printScorpionOrder(out, replay.scorpionOrders[step-1])
+	}
 	heading := fmt.Sprintf("Solution step %d/%d. Puzzle solved.", step, len(replay.moves))
 	if step < len(replay.moves) {
 		heading = fmt.Sprintf("Solution step %d/%d. Next move: %s", step, len(replay.moves), replay.moves[step])

@@ -48,6 +48,15 @@ func TestInteractivePlayCanUndoTerminalFall(t *testing.T) {
 	}
 }
 
+func TestInteractivePlayPrintsScorpionMovementOrder(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nn*\nQQ\n")
+	var output bytes.Buffer
+	Play(p, strings.NewReader("n r\nquit\n"), &output)
+	if !strings.Contains(output.String(), "Scorpion movement order: 1, 2") {
+		t.Fatalf("movement order diagnostic missing:\n%s", output.String())
+	}
+}
+
 func TestPlayCellTokenShowsScorpionState(t *testing.T) {
 	var p Puzzle
 	p.Terrain[2][3] = Low

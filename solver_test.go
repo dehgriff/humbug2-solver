@@ -152,6 +152,141 @@ func TestScorpionMovesTowardReachableBug(t *testing.T) {
 	}
 }
 
+func TestScorpionsMoveInNearestTargetOrderThenIDOrder(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < 5; r++ {
+		for c := 0; c < 5; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	bugs := []Bug{
+		{Kind: Scorpion, ID: 0, Pos: Pos{0, 2}},
+		{Kind: Scorpion, ID: 1, Pos: Pos{2, 1}},
+		{Kind: Scorpion, ID: 2, Pos: Pos{4, 2}},
+		{Kind: Snail, Pos: Pos{2, 2}},
+	}
+	order := scorpionTurnOrder(p, bugs)
+	want := []byte{1, 0, 2}
+	if len(order) != len(want) {
+		t.Fatalf("turn order = %v, want %v", order, want)
+	}
+	for i := range want {
+		if order[i] != want[i] {
+			t.Fatalf("turn order = %v, want %v", order, want)
+		}
+	}
+}
+
+func TestScorpionOrderIsRecalculatedAfterEachTurn(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	p.Trampolines[5][1] = true
+	s := State{Bugs: []Bug{
+		{Kind: Scorpion, ID: 0, Pos: Pos{5, 0}, Direction: Right},
+		{Kind: Scorpion, ID: 1, Pos: Pos{1, 1}, Direction: Right},
+		{Kind: Scorpion, ID: 2, Pos: Pos{0, 3}, Direction: Right},
+		{Kind: Snail, Pos: Pos{5, 2}, Egg: true},
+		{Kind: Snail, Pos: Pos{5, 3}},
+	}}
+
+	initial := scorpionTurnOrder(p, s.Bugs)
+	if len(initial) != 3 || initial[0] != 0 || initial[1] != 2 || initial[2] != 1 {
+		t.Fatalf("initial ranking = %v, want [0 2 1]", initial)
+	}
+	ok, actual := moveScorpionsInOrder(p, &s)
+	if !ok {
+		t.Fatal("scorpion phase unexpectedly lost puzzle")
+	}
+	if len(actual) != 3 || actual[0] != 0 || actual[1] != 1 || actual[2] != 2 {
+		t.Fatalf("dynamic order = %v, want [0 1 2] after scorpion 1 hatches the egg", actual)
+	}
+}
+
+func TestS36MiddleScorpionMovesAfterNearerScorpions(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s36.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
+	canonicalize(&state)
+
+	first := bugAt(state.Bugs, Pos{2, 4})
+	state, _, ok := applyMove(p, state, first, Left)
+	if !ok {
+		t.Fatal("first cockroach move should be valid")
+	}
+	second := bugAt(state.Bugs, Pos{2, 2})
+	state, _, ok = applyMove(p, state, second, Right)
+	if !ok {
+		t.Fatal("second cockroach move should be valid")
+	}
+	for _, bug := range state.Bugs {
+		if bug.Kind == Scorpion && bug.ID == 1 {
+			if bug.Pos != (Pos{4, 3}) {
+				t.Fatalf("scorpion 2 should move right to (5,4), got %+v", bug)
+			}
+			return
+		}
+	}
+	t.Fatal("scorpion 2 not found")
+}
+
+func TestS36ScorpionOrderIsRecalculatedUsingClearRoutes(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s36.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	cockroach := bugAt(state.Bugs, Pos{2, 0})
+	outcome := applyMoveDetailed(p, state, cockroach, Right)
+	if outcome.status != moveApplied {
+		t.Fatalf("cockroach move failed: %s", outcome.reason)
+	}
+	want := []uint8{2, 0, 1}
+	if len(outcome.scorpionOrder) != len(want) {
+		t.Fatalf("scorpion order = %v, want %v", outcome.scorpionOrder, want)
+	}
+	for i := range want {
+		if outcome.scorpionOrder[i] != want[i] {
+			t.Fatalf("scorpion order = %v, want %v", outcome.scorpionOrder, want)
+		}
+	}
+}
+
+func TestS36ClearRouteOutranksShorterBlockedRouteOnMoveTwo(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s36.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	first := bugAt(state.Bugs, Pos{2, 0})
+	firstOutcome := applyMoveDetailed(p, state, first, Right)
+	if firstOutcome.status != moveApplied {
+		t.Fatalf("first cockroach move failed: %s", firstOutcome.reason)
+	}
+	second := bugAt(firstOutcome.state.Bugs, Pos{2, 2})
+	secondOutcome := applyMoveDetailed(p, firstOutcome.state, second, Down)
+	if secondOutcome.status != moveApplied {
+		t.Fatalf("second cockroach move failed: %s", secondOutcome.reason)
+	}
+	want := []uint8{2, 0, 1}
+	if len(secondOutcome.scorpionOrder) != len(want) {
+		t.Fatalf("scorpion order = %v, want %v", secondOutcome.scorpionOrder, want)
+	}
+	for i := range want {
+		if secondOutcome.scorpionOrder[i] != want[i] {
+			t.Fatalf("scorpion order = %v, want %v", secondOutcome.scorpionOrder, want)
+		}
+	}
+}
+
 func TestScorpionDirectionTieBreaking(t *testing.T) {
 	var p Puzzle
 	for r := 0; r < 5; r++ {
