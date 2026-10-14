@@ -372,13 +372,17 @@ func nextScorpion(p Puzzle, bugs []Bug, remaining map[uint8]bool) (uint8, bool) 
 
 // scorpionTurnOrder ranks the scorpions for the board's current state. Each
 // scorpion prefers its nearest target on a completely clear route; only when it
-// has no clear route may its distance pass through other scorpions. Stable IDs
-// break equal-distance ties.
+// has no clear route may its distance pass through other scorpions. Equal
+// distances prefer the scorpion requiring the smaller turn, followed by board
+// position (lower on the board, then farther left). Stable IDs are the final
+// fallback.
 func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
 	type candidate struct {
 		id       byte
 		distance int
 		clear    bool
+		turn     int
+		pos      Pos
 	}
 	candidates := make([]candidate, 0)
 	for index, bug := range bugs {
@@ -387,11 +391,13 @@ func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
 		}
 		distance := BoardSize*BoardSize + 1
 		clear := false
-		if d, hasClearPath, ok := scorpionTargetDistance(p, bugs, index); ok {
+		turn := 3
+		if d, hasClearPath, dir, ok := scorpionTargetMetrics(p, bugs, index); ok {
 			distance = d
 			clear = hasClearPath
+			turn = scorpionTurnAmount(bug.Direction, dir)
 		}
-		candidates = append(candidates, candidate{id: bug.ID, distance: distance, clear: clear})
+		candidates = append(candidates, candidate{id: bug.ID, distance: distance, clear: clear, turn: turn, pos: bug.Pos})
 	}
 	sort.Slice(candidates, func(i, j int) bool {
 		if candidates[i].clear != candidates[j].clear {
@@ -399,6 +405,15 @@ func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
 		}
 		if candidates[i].distance != candidates[j].distance {
 			return candidates[i].distance < candidates[j].distance
+		}
+		if candidates[i].turn != candidates[j].turn {
+			return candidates[i].turn < candidates[j].turn
+		}
+		if candidates[i].pos.R != candidates[j].pos.R {
+			return candidates[i].pos.R > candidates[j].pos.R
+		}
+		if candidates[i].pos.C != candidates[j].pos.C {
+			return candidates[i].pos.C < candidates[j].pos.C
 		}
 		return candidates[i].id < candidates[j].id
 	})
@@ -409,16 +424,68 @@ func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
 	return order
 }
 
-func scorpionTargetDistance(p Puzzle, bugs []Bug, scorpion int) (int, bool, bool) {
+func scorpionTurnAmount(pointing, movement Direction) int {
+	difference := (int(movement) - int(pointing) + len(directions)) % len(directions)
+	if difference == 0 {
+		return 0
+	}
+	if difference == 2 {
+		return 2
+	}
+	return 1
+}
+
+func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direction, bool) {
 	from := bugs[scorpion].Pos
+	level := p.Terrain[from.R][from.C]
 	occupied := occupancy(bugs)
 	delete(occupied, from)
+	pointing := bugs[scorpion].Direction
+	order := []Direction{
+		pointing,
+		Direction((int(pointing) + 1) % len(directions)),
+		Direction((int(pointing) + 3) % len(directions)),
+		Direction((int(pointing) + 2) % len(directions)),
+	}
 	for _, allowScorpions := range []bool{false, true} {
-		if distance, _, ok := distanceToReachableBug(p, bugs, from, p.Terrain[from.R][from.C], occupied, allowScorpions); ok {
-			return distance, !allowScorpions, true
+		bestDistance := BoardSize*BoardSize + 1
+		bestDirection := Up
+		found := false
+		for _, dir := range order {
+			if hasWall(p, from, dir) {
+				continue
+			}
+			first := add(from, deltas[dir])
+			if !inside(first) || p.Terrain[first.R][first.C] != level {
+				continue
+			}
+			distance := 0
+			if index, blocked := occupied[first]; blocked {
+				bug := bugs[index]
+				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
+					distance = 1
+				} else if bug.Kind != Scorpion || !allowScorpions {
+					continue
+				}
+			}
+			if distance == 0 {
+				rest, _, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions)
+				if !ok {
+					continue
+				}
+				distance = rest + 1
+			}
+			if distance < bestDistance {
+				bestDistance = distance
+				bestDirection = dir
+				found = true
+			}
+		}
+		if found {
+			return bestDistance, !allowScorpions, bestDirection, true
 		}
 	}
-	return 0, false, false
+	return 0, false, Up, false
 }
 
 func scorpionAdjacentToBug(p Puzzle, bugs []Bug, scorpion int) bool {

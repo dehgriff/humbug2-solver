@@ -195,8 +195,11 @@ always acts before one whose route passes through another scorpion, even when
 the blocked route is shorter. Distance is compared within that route class.
 After the selected scorpion acts, route classes, target choices, and distances
 are recalculated on the resulting board for the scorpions still waiting to act.
-Equal distances use their stable initial top-to-bottom, left-to-right numbering,
-and each scorpion acts at most once during the automatic phase. An
+For equal distances, a scorpion pointing along its intended move wins over one
+requiring a 90-degree turn, which wins over one requiring a 180-degree turn.
+If still tied, the scorpion with the higher row number wins; on the same row,
+the lower column number wins. Stable numbering is retained only as a final
+fallback, and each scorpion acts at most once during the automatic phase. An
 unstunned scorpion adjacent to a hatched, non-scorpion bug on the same platform
 level kills it and loses that search branch, unless a wall separates them. Eggs
 and other scorpions are neither targets nor victims. A scorpion landed on

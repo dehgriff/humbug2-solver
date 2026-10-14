@@ -85,6 +85,31 @@ func TestPlaySolutionPrintsScorpionMovementOrder(t *testing.T) {
 	}
 }
 
+func TestS22MoveFourUsesBoardPositionBeforeStableNumber(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s22.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	var order []uint8
+	for moveNumber, line := range p.Solution[:4] {
+		index, dir, err := parseStateMove(line, state)
+		if err != nil {
+			t.Fatalf("solution move %d: %v", moveNumber+1, err)
+		}
+		outcome := applyMoveDetailed(p, state, index, dir)
+		if outcome.status != moveApplied {
+			t.Fatalf("solution move %d: %s", moveNumber+1, outcome.reason)
+		}
+		state = outcome.state
+		order = outcome.scorpionOrder
+	}
+	if len(order) == 0 || order[0] != 2 {
+		t.Fatalf("move 4 scorpion order = %v, want scorpion 3 first", order)
+	}
+}
+
 func TestSolutionHighlightShowsNextMoveDirectionOnly(t *testing.T) {
 	p := twoSnailPuzzle(t)
 	p.HasSolution = true

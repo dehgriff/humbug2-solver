@@ -152,7 +152,7 @@ func TestScorpionMovesTowardReachableBug(t *testing.T) {
 	}
 }
 
-func TestScorpionsMoveInNearestTargetOrderThenIDOrder(t *testing.T) {
+func TestScorpionsUseBoardPositionAfterEqualRouteDistanceAndTurn(t *testing.T) {
 	var p Puzzle
 	for r := 0; r < 5; r++ {
 		for c := 0; c < 5; c++ {
@@ -160,13 +160,13 @@ func TestScorpionsMoveInNearestTargetOrderThenIDOrder(t *testing.T) {
 		}
 	}
 	bugs := []Bug{
-		{Kind: Scorpion, ID: 0, Pos: Pos{0, 2}},
-		{Kind: Scorpion, ID: 1, Pos: Pos{2, 1}},
-		{Kind: Scorpion, ID: 2, Pos: Pos{4, 2}},
+		{Kind: Scorpion, ID: 0, Pos: Pos{0, 2}, Direction: Down},
+		{Kind: Scorpion, ID: 1, Pos: Pos{2, 1}, Direction: Right},
+		{Kind: Scorpion, ID: 2, Pos: Pos{4, 2}, Direction: Up},
 		{Kind: Snail, Pos: Pos{2, 2}},
 	}
 	order := scorpionTurnOrder(p, bugs)
-	want := []byte{1, 0, 2}
+	want := []byte{1, 2, 0}
 	if len(order) != len(want) {
 		t.Fatalf("turn order = %v, want %v", order, want)
 	}
@@ -174,6 +174,24 @@ func TestScorpionsMoveInNearestTargetOrderThenIDOrder(t *testing.T) {
 		if order[i] != want[i] {
 			t.Fatalf("turn order = %v, want %v", order, want)
 		}
+	}
+}
+
+func TestScorpionTurnAdvantageOutranksBoardPosition(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < 5; r++ {
+		for c := 0; c < 5; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	bugs := []Bug{
+		{Kind: Scorpion, ID: 0, Pos: Pos{0, 2}, Direction: Down},
+		{Kind: Scorpion, ID: 1, Pos: Pos{4, 2}, Direction: Down},
+		{Kind: Snail, Pos: Pos{2, 2}},
+	}
+	order := scorpionTurnOrder(p, bugs)
+	if len(order) != 2 || order[0] != 0 || order[1] != 1 {
+		t.Fatalf("turn order = %v, want [0 1] because facing direction outranks position", order)
 	}
 }
 
