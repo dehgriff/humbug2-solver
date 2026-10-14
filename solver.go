@@ -443,8 +443,8 @@ func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direc
 	pointing := bugs[scorpion].Direction
 	order := []Direction{
 		pointing,
-		Direction((int(pointing) + 1) % len(directions)),
 		Direction((int(pointing) + 3) % len(directions)),
+		Direction((int(pointing) + 1) % len(directions)),
 		Direction((int(pointing) + 2) % len(directions)),
 	}
 	for _, allowScorpions := range []bool{false, true} {
@@ -508,7 +508,7 @@ func scorpionAdjacentToBug(p Puzzle, bugs []Bug, scorpion int) bool {
 }
 
 // scorpionDirection chooses a first step on a shortest unobstructed path to a
-// bug on the same level. Equal paths prefer straight, right, left, then reverse.
+// bug on the same level. Equal paths prefer straight, left, right, then reverse.
 func scorpionDirection(p Puzzle, bugs []Bug, scorpion int) (Direction, bool) {
 	dir, _, ok := scorpionMovePlan(p, bugs, scorpion)
 	return dir, ok
@@ -522,8 +522,8 @@ func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool)
 	pointing := bugs[scorpion].Direction
 	order := []Direction{
 		pointing,
-		Direction((int(pointing) + 1) % len(directions)),
 		Direction((int(pointing) + 3) % len(directions)),
+		Direction((int(pointing) + 1) % len(directions)),
 		Direction((int(pointing) + 2) % len(directions)),
 	}
 	for _, allowScorpions := range []bool{false, true} {

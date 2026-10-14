@@ -110,6 +110,35 @@ func TestS22MoveFourUsesBoardPositionBeforeStableNumber(t *testing.T) {
 	}
 }
 
+func TestS22SolutionThroughMoveNineteenUsesLeftTurn(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s22.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	for moveNumber, line := range p.Solution[:19] {
+		index, dir, err := parseStateMove(line, state)
+		if err != nil {
+			t.Fatalf("solution move %d: %v", moveNumber+1, err)
+		}
+		outcome := applyMoveDetailed(p, state, index, dir)
+		if outcome.status != moveApplied {
+			t.Fatalf("solution move %d: %s", moveNumber+1, outcome.reason)
+		}
+		state = outcome.state
+	}
+	for _, bug := range state.Bugs {
+		if bug.Kind == Scorpion && bug.ID == 0 {
+			if bug.Pos != (Pos{4, 4}) {
+				t.Fatalf("scorpion 1 after move 19 = (%d,%d), want (5,5)", bug.Pos.R+1, bug.Pos.C+1)
+			}
+			return
+		}
+	}
+	t.Fatal("scorpion 1 not found after move 19")
+}
+
 func TestSolutionHighlightShowsNextMoveDirectionOnly(t *testing.T) {
 	p := twoSnailPuzzle(t)
 	p.HasSolution = true

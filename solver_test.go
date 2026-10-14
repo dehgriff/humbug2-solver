@@ -245,8 +245,8 @@ func TestS36MiddleScorpionMovesAfterNearerScorpions(t *testing.T) {
 	}
 	for _, bug := range state.Bugs {
 		if bug.Kind == Scorpion && bug.ID == 1 {
-			if bug.Pos != (Pos{4, 3}) {
-				t.Fatalf("scorpion 2 should move right to (5,4), got %+v", bug)
+			if bug.Pos != (Pos{4, 1}) {
+				t.Fatalf("scorpion 2 should move left to (5,2), got %+v", bug)
 			}
 			return
 		}
@@ -326,7 +326,7 @@ func TestScorpionDirectionTieBreaking(t *testing.T) {
 	}
 }
 
-func TestScorpionPrefersRightTurnOverLeftTurn(t *testing.T) {
+func TestScorpionPrefersLeftTurnOverRightTurn(t *testing.T) {
 	var p Puzzle
 	for r := 0; r < 5; r++ {
 		for c := 0; c < 5; c++ {
@@ -338,8 +338,8 @@ func TestScorpionPrefersRightTurnOverLeftTurn(t *testing.T) {
 		{Kind: Snail, Pos: Pos{2, 4}},
 		{Kind: Ladybird, Pos: Pos{2, 0}},
 	}
-	if dir, ok := scorpionDirection(p, bugs, 0); !ok || dir != Right {
-		t.Fatalf("expected right turn to win equal right/left paths, got %v, %v", dir, ok)
+	if dir, ok := scorpionDirection(p, bugs, 0); !ok || dir != Left {
+		t.Fatalf("expected left turn to win equal left/right paths, got %v, %v", dir, ok)
 	}
 }
 
