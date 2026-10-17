@@ -70,6 +70,17 @@ func TestPlayCellTokenShowsScorpionState(t *testing.T) {
 	}
 }
 
+func TestScorpionsRenderBoldBlue(t *testing.T) {
+	var p Puzzle
+	p.Terrain[1][1] = Low
+	state := State{Bugs: []Bug{{Kind: Scorpion, Pos: Pos{1, 1}, Direction: Right}}}
+	var output bytes.Buffer
+	printBoardStateWithMove(&output, p, state, "Board", nil)
+	if !strings.Contains(output.String(), "\x1b[1;34mq1>\x1b[0m") {
+		t.Fatalf("scorpion is not bold blue:\n%s", output.String())
+	}
+}
+
 func TestBoardRenderingOmitsOnlyTrailingRowsAndColumns(t *testing.T) {
 	var p Puzzle
 	p.Terrain[2][3] = Low

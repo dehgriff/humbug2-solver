@@ -23,8 +23,56 @@ func TestFormatSolutionUsesCoordinatesOnlyWhileTypeIsAmbiguous(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "1 n 3 1 r\n2 n r\n"; got != want {
+	if want := "1 n 3 1 r # snail merged with star at (3,2)\n2 n r # snail merged with star at (3,4)\n"; got != want {
 		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
+func TestFormatSolutionNotesPassiveObjectsFallingOffBoard(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want string
+	}{
+		{name: "puck", text: "max-moves 1\nboard:\ntu\n*\n", want: "1 t r # puck fell off board\n"},
+		{name: "scorpion", text: "max-moves 1\nboard:\ntq\n*\n", want: "1 t r # scorpion 1 fell off board\n"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := puzzle(t, test.text)
+			got, err := formatSolution(p, []Move{{Kind: Beetle, From: Pos{0, 0}, Dir: Right}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != test.want {
+				t.Fatalf("solution = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestSolutionInlineFallNoteRemainsReplayable(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nn*\nsolution:\n1 n r # puck fell off board\n")
+	if len(p.Solution) != 1 || p.Solution[0] != "n r" {
+		t.Fatalf("parsed solution = %v", p.Solution)
+	}
+	if _, err := readSolution(p); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSolutionMoveNotesForStdout(t *testing.T) {
+	p := puzzle(t, "max-moves 2\nboard:\ntu*\n")
+	moves := []Move{
+		{Kind: Beetle, From: Pos{0, 0}, Dir: Right},
+		{Kind: Beetle, From: Pos{0, 1}, Dir: Right},
+	}
+	notes, err := solutionMoveNotes(p, moves)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(notes) != 2 || len(notes[0]) != 0 || len(notes[1]) != 2 || notes[1][0] != "puck fell off board" || notes[1][1] != "beetle merged with star at (1,3)" {
+		t.Fatalf("unexpected stdout notes: %v", notes)
 	}
 }
 
@@ -214,7 +262,7 @@ func TestWriteSolutionSectionIntoPuzzleFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "# retained comment\nmax-moves 1\nboard:\n..n*\nsolution:\n1 n r\n"
+	want := "# retained comment\nmax-moves 1\nboard:\n..n*\nsolution:\n1 n r # snail merged with star at (1,4)\n"
 	if string(data) != want {
 		t.Fatalf("unexpected puzzle file %q, want %q", data, want)
 	}

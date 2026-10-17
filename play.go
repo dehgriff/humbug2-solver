@@ -10,8 +10,7 @@ import (
 
 // Play runs the interactive puzzle player.
 func Play(p Puzzle, in io.Reader, out io.Writer) {
-	state := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
-	canonicalize(&state)
+	state := initialState(p)
 	history := make([]State, 0, p.MaxMoves)
 	moveNumber := 0
 	over := false
@@ -168,6 +167,7 @@ func writeSolutionCell(out io.Writer, p Puzzle, state State, pos Pos, token stri
 	const (
 		boldRed   = "\x1b[1;31m"
 		boldGreen = "\x1b[1;32m"
+		boldBlue  = "\x1b[1;34m"
 		yellow    = "\x1b[33m"
 		reset     = "\x1b[0m"
 	)
@@ -186,6 +186,9 @@ func writeSolutionCell(out io.Writer, p Puzzle, state State, pos Pos, token stri
 	visibleLength := len(token)
 	if bugIndex >= 0 {
 		colour := boldGreen
+		if state.Bugs[bugIndex].Kind == Scorpion {
+			colour = boldBlue
+		}
 		if nextMove != nil && pos == nextMove.From {
 			colour = boldRed
 			bugToken += directionArrow(nextMove.Dir)

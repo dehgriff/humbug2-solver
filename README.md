@@ -187,6 +187,11 @@ not need to remain on the board for the puzzle to be solved. They can be pushed,
 can start as eggs, and block and bounce other bugs normally. A scorpion that
 falls disappears without losing the puzzle.
 
+Scorpions initially point right. When a puzzle is loaded, a hatched scorpion
+adjacent to a same-level target bug turns to face it, provided no wall separates
+them. Eggs are not targets. If several targets are adjacent, direction priority
+is straight, left, right, then reverse.
+
 After every player move has otherwise completed, the program selects the
 hatched scorpion with the shortest distance to its preferred target. Each
 candidate first looks for a completely clear route and considers routes through
@@ -197,9 +202,11 @@ After the selected scorpion acts, route classes, target choices, and distances
 are recalculated on the resulting board for the scorpions still waiting to act.
 For equal distances, a scorpion pointing along its intended move wins over one
 requiring a 90-degree turn, which wins over one requiring a 180-degree turn.
-If still tied, the scorpion with the higher row number wins; on the same row,
-the lower column number wins. Stable numbering is retained only as a final
-fallback, and each scorpion acts at most once during the automatic phase. An
+If still tied, a scorpion whose selected target is directly ahead along a
+straight, unobstructed path wins. After that, the scorpion with the higher row
+number wins; on the same row, the lower column number wins. Stable numbering is
+retained only as a final fallback, and each scorpion acts at most once during
+the automatic phase. An
 unstunned scorpion adjacent to a hatched, non-scorpion bug on the same platform
 level kills it and loses that search branch, unless a wall separates them. Eggs
 and other scorpions are neither targets nor victims. A scorpion landed on
@@ -209,6 +216,13 @@ its automatic turn for that move.
 When at least two hatched scorpions are active, `-play` and `-play-soln` print
 the automatic turn order after each move, for example `Scorpion movement order:
 2, 1, 3`.
+
+Board displays render ordinary bugs in bold green, scorpions in bold blue, the
+next solution bug in bold red, and stars in yellow. Generated solution lines
+and solver stdout include an inline note when a scorpion or puck falls off the
+board or a bug merges with a star, such as `7 t r # scorpion 2 fell off board`
+or `8 n u # snail merged with star at (3,4)`. Comments in the puzzle file are
+ignored during replay.
 
 Otherwise, a scorpion moves one step along a shortest same-level path to the
 nearest reachable hatched bug. Walls and occupied non-scorpion squares block

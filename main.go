@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -55,12 +56,20 @@ func main() {
 		fmt.Printf("No solution within %d moves.\n", p.MaxMoves)
 		return
 	}
+	moveNotes, err := solutionMoveNotes(p, moves)
+	if err != nil {
+		fatal(fmt.Errorf("format solution output: %w", err))
+	}
 	if err := writePuzzleSolution(flag.Arg(0), p, moves); err != nil {
 		fatal(fmt.Errorf("write solution to %s: %w", flag.Arg(0), err))
 	}
 	fmt.Printf("Shortest solution: %d move(s)\n", len(moves))
 	for i, move := range moves {
-		fmt.Printf("%d. %s\n", i+1, move)
+		fmt.Printf("%d. %s", i+1, move)
+		if len(moveNotes[i]) > 0 {
+			fmt.Printf(" # %s", strings.Join(moveNotes[i], "; "))
+		}
+		fmt.Println()
 	}
 	fmt.Printf("Solution written to %s\n", flag.Arg(0))
 }

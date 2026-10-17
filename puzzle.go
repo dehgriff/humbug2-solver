@@ -133,6 +133,12 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			continue
 		}
 		if inSolution {
+			if comment := strings.Index(line, "#"); comment >= 0 {
+				line = strings.TrimSpace(line[:comment])
+				if line == "" {
+					continue
+				}
+			}
 			fields := strings.Fields(line)
 			if len(fields) != 3 && len(fields) != 5 {
 				return p, fmt.Errorf("line %d: expected numbered solution move", lineNo)

@@ -77,8 +77,7 @@ func SolveWithProgress(p Puzzle, progress func(SearchProgress)) ([]Move, bool) {
 // for Beetle puzzles, preserving the shortest-solution guarantee without that
 // assumption.
 func SolveWithOptions(p Puzzle, options SolveOptions) ([]Move, bool) {
-	start := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
-	canonicalize(&start)
+	start := initialState(p)
 	if remainingBugCount(start) == 0 {
 		return nil, true
 	}
@@ -296,11 +295,11 @@ func updatePushedScorpionDirections(before, after []Bug) {
 }
 
 func moveScorpions(p Puzzle, s *State) bool {
-	ok, _ := moveScorpionsInOrder(p, s)
+	ok, _, _ := moveScorpionsInOrder(p, s)
 	return ok
 }
 
-func moveScorpionsInOrder(p Puzzle, s *State) (bool, []uint8) {
+func moveScorpionsInOrder(p Puzzle, s *State) (bool, []uint8, []string) {
 	remaining := make(map[uint8]bool)
 	for _, bug := range s.Bugs {
 		if bug.Kind == Scorpion && !bug.Egg && inside(bug.Pos) {
@@ -308,6 +307,7 @@ func moveScorpionsInOrder(p Puzzle, s *State) (bool, []uint8) {
 		}
 	}
 	order := make([]uint8, 0, len(remaining))
+	var notes []string
 	for len(remaining) > 0 {
 		id, found := nextScorpion(p, s.Bugs, remaining)
 		if !found {
@@ -329,7 +329,7 @@ func moveScorpionsInOrder(p Puzzle, s *State) (bool, []uint8) {
 			continue
 		}
 		if scorpionAdjacentToBug(p, s.Bugs, index) {
-			return false, order
+			return false, order, notes
 		}
 		dir, target, moves := scorpionMovePlan(p, s.Bugs, index)
 		if !moves {
@@ -356,9 +356,9 @@ func moveScorpionsInOrder(p Puzzle, s *State) (bool, []uint8) {
 			}
 		}
 		removeGoneEntities(s)
-		consumeStars(s)
+		notes = append(notes, consumeStars(s)...)
 	}
-	return true, order
+	return true, order, notes
 }
 
 func nextScorpion(p Puzzle, bugs []Bug, remaining map[uint8]bool) (uint8, bool) {
@@ -382,6 +382,7 @@ func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
 		distance int
 		clear    bool
 		turn     int
+		direct   bool
 		pos      Pos
 	}
 	candidates := make([]candidate, 0)
@@ -392,12 +393,14 @@ func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
 		distance := BoardSize*BoardSize + 1
 		clear := false
 		turn := 3
-		if d, hasClearPath, dir, ok := scorpionTargetMetrics(p, bugs, index); ok {
+		direct := false
+		if d, hasClearPath, dir, target, ok := scorpionTargetMetrics(p, bugs, index); ok {
 			distance = d
 			clear = hasClearPath
 			turn = scorpionTurnAmount(bug.Direction, dir)
+			direct = scorpionHasDirectLine(p, bugs, index, target)
 		}
-		candidates = append(candidates, candidate{id: bug.ID, distance: distance, clear: clear, turn: turn, pos: bug.Pos})
+		candidates = append(candidates, candidate{id: bug.ID, distance: distance, clear: clear, turn: turn, direct: direct, pos: bug.Pos})
 	}
 	sort.Slice(candidates, func(i, j int) bool {
 		if candidates[i].clear != candidates[j].clear {
@@ -408,6 +411,9 @@ func scorpionTurnOrder(p Puzzle, bugs []Bug) []byte {
 		}
 		if candidates[i].turn != candidates[j].turn {
 			return candidates[i].turn < candidates[j].turn
+		}
+		if candidates[i].direct != candidates[j].direct {
+			return candidates[i].direct
 		}
 		if candidates[i].pos.R != candidates[j].pos.R {
 			return candidates[i].pos.R > candidates[j].pos.R
@@ -435,7 +441,7 @@ func scorpionTurnAmount(pointing, movement Direction) int {
 	return 1
 }
 
-func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direction, bool) {
+func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direction, Pos, bool) {
 	from := bugs[scorpion].Pos
 	level := p.Terrain[from.R][from.C]
 	occupied := occupancy(bugs)
@@ -450,6 +456,7 @@ func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direc
 	for _, allowScorpions := range []bool{false, true} {
 		bestDistance := BoardSize*BoardSize + 1
 		bestDirection := Up
+		bestTarget := Pos{}
 		found := false
 		for _, dir := range order {
 			if hasWall(p, from, dir) {
@@ -460,32 +467,61 @@ func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direc
 				continue
 			}
 			distance := 0
+			target := Pos{}
 			if index, blocked := occupied[first]; blocked {
 				bug := bugs[index]
 				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
 					distance = 1
+					target = first
 				} else if bug.Kind != Scorpion || !allowScorpions {
 					continue
 				}
 			}
 			if distance == 0 {
-				rest, _, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions)
+				rest, foundTarget, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions)
 				if !ok {
 					continue
 				}
 				distance = rest + 1
+				target = foundTarget
 			}
 			if distance < bestDistance {
 				bestDistance = distance
 				bestDirection = dir
+				bestTarget = target
 				found = true
 			}
 		}
 		if found {
-			return bestDistance, !allowScorpions, bestDirection, true
+			return bestDistance, !allowScorpions, bestDirection, bestTarget, true
 		}
 	}
-	return 0, false, Up, false
+	return 0, false, Up, Pos{}, false
+}
+
+func scorpionHasDirectLine(p Puzzle, bugs []Bug, scorpion int, target Pos) bool {
+	bug := bugs[scorpion]
+	if !inside(target) || p.Terrain[target.R][target.C] != p.Terrain[bug.Pos.R][bug.Pos.C] {
+		return false
+	}
+	occupied := occupancy(bugs)
+	delete(occupied, bug.Pos)
+	cur := bug.Pos
+	for {
+		if hasWall(p, cur, bug.Direction) {
+			return false
+		}
+		cur = add(cur, deltas[bug.Direction])
+		if !inside(cur) || p.Terrain[cur.R][cur.C] != p.Terrain[bug.Pos.R][bug.Pos.C] {
+			return false
+		}
+		if cur == target {
+			return true
+		}
+		if _, blocked := occupied[cur]; blocked {
+			return false
+		}
+	}
 }
 
 func scorpionAdjacentToBug(p Puzzle, bugs []Bug, scorpion int) bool {
@@ -639,6 +675,7 @@ type moveOutcome struct {
 	status        moveStatus
 	reason        string
 	scorpionOrder []uint8
+	notes         []string
 }
 
 func applyMove(p Puzzle, old State, index int, dir Direction) (State, Move, bool) {
@@ -711,20 +748,21 @@ func applyMoveDetailed(p Puzzle, old State, index int, dir Direction) moveOutcom
 		s.Bugs[index].Pos = to
 	}
 	removeGoneEntities(&s)
-	consumeStars(&s)
+	notes := consumeStars(&s)
 	updatePushedScorpionDirections(old.Bugs, s.Bugs)
 	// A Gold Beetle may have changed the walls during the player move.
 	p.Walls = s.Walls
-	scorpionsOK, scorpionOrder := moveScorpionsInOrder(p, &s)
+	scorpionsOK, scorpionOrder, scorpionNotes := moveScorpionsInOrder(p, &s)
+	notes = append(notes, scorpionNotes...)
 	if !scorpionsOK {
-		return moveOutcome{state: s, move: move, status: moveLost, reason: "a scorpion killed an adjacent bug", scorpionOrder: scorpionOrder}
+		return moveOutcome{state: s, move: move, status: moveLost, reason: "a scorpion killed an adjacent bug", scorpionOrder: scorpionOrder, notes: notes}
 	}
 	removeGoneEntities(&s)
 	for i := range s.Bugs {
 		s.Bugs[i].Stunned = false
 	}
 	canonicalize(&s)
-	return moveOutcome{state: s, move: move, status: moveApplied, scorpionOrder: scorpionOrder}
+	return moveOutcome{state: s, move: move, status: moveApplied, scorpionOrder: scorpionOrder, notes: notes}
 }
 
 func moveAnt(p Puzzle, s *State, index int, dir Direction, occupied map[Pos]int) (Pos, bool, bool) {
@@ -1161,13 +1199,23 @@ func movePushChain(s *State, chain []int, dir Direction, lastLanding Pos) {
 	s.Bugs[chain[len(chain)-1]].Pos = lastLanding
 }
 
-func consumeStars(s *State) {
+func consumeStars(s *State) []string {
 	kept := s.Bugs[:0]
+	var notes []string
 	for _, b := range s.Bugs {
 		stars := s.Stars[b.Pos.R][b.Pos.C]
 		if b.Kind != Puck && b.Kind != Scorpion && !b.Egg && stars > 0 {
 			if b.Kind == Ant {
 				count := antCount(b)
+				consumed := count
+				if consumed > stars {
+					consumed = stars
+				}
+				if consumed == 1 {
+					notes = append(notes, fmt.Sprintf("ant merged with star at (%d,%d)", b.Pos.R+1, b.Pos.C+1))
+				} else {
+					notes = append(notes, fmt.Sprintf("%d ants merged with stars at (%d,%d)", consumed, b.Pos.R+1, b.Pos.C+1))
+				}
 				if count > stars {
 					b.Count = count - stars
 					s.Stars[b.Pos.R][b.Pos.C] = 0
@@ -1177,12 +1225,14 @@ func consumeStars(s *State) {
 				}
 				continue
 			}
+			notes = append(notes, fmt.Sprintf("%s merged with star at (%d,%d)", b.Kind, b.Pos.R+1, b.Pos.C+1))
 			s.Stars[b.Pos.R][b.Pos.C]--
 			continue
 		}
 		kept = append(kept, b)
 	}
 	s.Bugs = kept
+	return notes
 }
 
 func removeGoneEntities(s *State) {

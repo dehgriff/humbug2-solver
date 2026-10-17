@@ -141,6 +141,45 @@ func TestParseScorpionsInBoardOrder(t *testing.T) {
 	}
 }
 
+func TestInitialScorpionsFaceAdjacentTargetBugs(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nngq**\n.q.\n")
+	state := initialState(p)
+	for _, bug := range state.Bugs {
+		if bug.Kind != Scorpion {
+			continue
+		}
+		switch bug.ID {
+		case 0:
+			if bug.Direction != Left {
+				t.Fatalf("scorpion 1 direction = %v, want left", bug.Direction)
+			}
+		case 1:
+			if bug.Direction != Up {
+				t.Fatalf("scorpion 2 direction = %v, want up", bug.Direction)
+			}
+		}
+	}
+}
+
+func TestD33FirstMoveScorpionOrderAfterInitialFacing(t *testing.T) {
+	p := puzzle(t, "max-moves 40\nboard:\noooo\nogqqo\noqooo\nooooo\n1oooo\n")
+	state := initialState(p)
+	grasshopper := bugAt(state.Bugs, Pos{1, 1})
+	outcome := applyMoveDetailed(p, state, grasshopper, Left)
+	if outcome.status != moveApplied {
+		t.Fatalf("grasshopper move failed: %s", outcome.reason)
+	}
+	want := []uint8{0, 2, 1}
+	if len(outcome.scorpionOrder) != len(want) {
+		t.Fatalf("scorpion order = %v, want %v", outcome.scorpionOrder, want)
+	}
+	for i := range want {
+		if outcome.scorpionOrder[i] != want[i] {
+			t.Fatalf("scorpion order = %v, want %v", outcome.scorpionOrder, want)
+		}
+	}
+}
+
 func TestScorpionMovesTowardReachableBug(t *testing.T) {
 	var p Puzzle
 	for c := 0; c < 5; c++ {
@@ -215,7 +254,7 @@ func TestScorpionOrderIsRecalculatedAfterEachTurn(t *testing.T) {
 	if len(initial) != 3 || initial[0] != 0 || initial[1] != 2 || initial[2] != 1 {
 		t.Fatalf("initial ranking = %v, want [0 2 1]", initial)
 	}
-	ok, actual := moveScorpionsInOrder(p, &s)
+	ok, actual, _ := moveScorpionsInOrder(p, &s)
 	if !ok {
 		t.Fatal("scorpion phase unexpectedly lost puzzle")
 	}
@@ -1283,12 +1322,12 @@ func TestLandingAntsBounceWithoutCombining(t *testing.T) {
 func TestStarsConsumeIndividualAntsFromGroup(t *testing.T) {
 	s := State{Bugs: []Bug{{Kind: Ant, Pos: Pos{2, 3}, Count: 3}}}
 	s.Stars[2][3] = 2
-	consumeStars(&s)
+	_ = consumeStars(&s)
 	if len(s.Bugs) != 1 || s.Bugs[0].Count != 1 || s.Stars[2][3] != 0 {
 		t.Fatalf("partial ant consumption failed: bugs=%+v stars=%d", s.Bugs, s.Stars[2][3])
 	}
 	s.Stars[2][3] = 1
-	consumeStars(&s)
+	_ = consumeStars(&s)
 	if len(s.Bugs) != 0 || s.Stars[2][3] != 0 {
 		t.Fatalf("final ant consumption failed: bugs=%+v stars=%d", s.Bugs, s.Stars[2][3])
 	}
@@ -1343,7 +1382,7 @@ func TestMultipleStarsOnOnePlatformAreConsumedIndividually(t *testing.T) {
 	s := State{Stars: p.Stars}
 	for want := uint8(2); ; want-- {
 		s.Bugs = []Bug{{Kind: Snail, Pos: star}}
-		consumeStars(&s)
+		_ = consumeStars(&s)
 		if len(s.Bugs) != 0 || s.Stars[star.R][star.C] != want {
 			t.Fatalf("after consumption: bugs=%v stars=%d, want 0 bugs and %d stars", s.Bugs, s.Stars[star.R][star.C], want)
 		}

@@ -81,23 +81,105 @@ func formatSolution(p Puzzle, moves []Move) (string, error) {
 		}
 		code := bugCode(move.Kind)
 		if countBugType(state.Bugs, move.Kind) == 1 {
-			fmt.Fprintf(&output, "%d %s %s\n", number+1, code, directionCode(move.Dir))
+			fmt.Fprintf(&output, "%d %s %s", number+1, code, directionCode(move.Dir))
 		} else {
-			fmt.Fprintf(&output, "%d %s %d %d %s\n", number+1, code, move.From.R+1, move.From.C+1, directionCode(move.Dir))
+			fmt.Fprintf(&output, "%d %s %d %d %s", number+1, code, move.From.R+1, move.From.C+1, directionCode(move.Dir))
 		}
 		outcome := applyMoveDetailed(p, state, index, move.Dir)
 		if outcome.status != moveApplied {
 			return "", fmt.Errorf("move %d cannot be replayed: %s", number+1, outcome.reason)
 		}
+		notes := append(passiveFallNotes(state, outcome.state), outcome.notes...)
+		if len(notes) > 0 {
+			fmt.Fprintf(&output, " # %s", strings.Join(notes, "; "))
+		}
+		output.WriteByte('\n')
 		state = outcome.state
 	}
 	return output.String(), nil
 }
 
+func passiveFallNotes(before, after State) []string {
+	remainingScorpions := make(map[uint8]bool)
+	pucksBefore, pucksAfter := 0, 0
+	for _, bug := range after.Bugs {
+		if bug.Kind == Scorpion {
+			remainingScorpions[bug.ID] = true
+		}
+		if bug.Kind == Puck {
+			pucksAfter++
+		}
+	}
+	var notes []string
+	for _, bug := range before.Bugs {
+		if bug.Kind == Scorpion && !remainingScorpions[bug.ID] {
+			notes = append(notes, fmt.Sprintf("scorpion %d fell off board", int(bug.ID)+1))
+		}
+		if bug.Kind == Puck {
+			pucksBefore++
+		}
+	}
+	for i := 0; i < pucksBefore-pucksAfter; i++ {
+		notes = append(notes, "puck fell off board")
+	}
+	return notes
+}
+
+func solutionMoveNotes(p Puzzle, moves []Move) ([][]string, error) {
+	state := initialState(p)
+	notes := make([][]string, len(moves))
+	for number, move := range moves {
+		index := bugAt(state.Bugs, move.From)
+		if index < 0 || state.Bugs[index].Kind != move.Kind {
+			return nil, fmt.Errorf("move %d does not match the replayed state", number+1)
+		}
+		outcome := applyMoveDetailed(p, state, index, move.Dir)
+		if outcome.status != moveApplied {
+			return nil, fmt.Errorf("move %d cannot be replayed: %s", number+1, outcome.reason)
+		}
+		notes[number] = append(passiveFallNotes(state, outcome.state), outcome.notes...)
+		state = outcome.state
+	}
+	return notes, nil
+}
+
 func initialState(p Puzzle) State {
 	state := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
+	orientInitialScorpions(p, state.Bugs)
 	canonicalize(&state)
 	return state
+}
+
+func orientInitialScorpions(p Puzzle, bugs []Bug) {
+	occupied := occupancy(bugs)
+	for i := range bugs {
+		bug := &bugs[i]
+		if bug.Kind != Scorpion || bug.Egg || !inside(bug.Pos) {
+			continue
+		}
+		order := []Direction{
+			bug.Direction,
+			Direction((int(bug.Direction) + 3) % len(directions)),
+			Direction((int(bug.Direction) + 1) % len(directions)),
+			Direction((int(bug.Direction) + 2) % len(directions)),
+		}
+		for _, dir := range order {
+			if hasWall(p, bug.Pos, dir) {
+				continue
+			}
+			targetPos := add(bug.Pos, deltas[dir])
+			targetIndex, found := occupied[targetPos]
+			if !found || p.Terrain[targetPos.R][targetPos.C] != p.Terrain[bug.Pos.R][bug.Pos.C] {
+				continue
+			}
+			target := bugs[targetIndex]
+			if target.Kind == Puck || target.Kind == Scorpion || target.Egg {
+				continue
+			}
+			bug.Direction = dir
+			break
+		}
+	}
 }
 
 func bugCode(kind BugType) string {
