@@ -441,6 +441,23 @@ func scorpionTurnAmount(pointing, movement Direction) int {
 	return 1
 }
 
+// scorpionTargetTurn classifies the target's overall bearing relative to the
+// direction the scorpion is facing. A target anywhere ahead is a 0-degree
+// target, one directly to either side is 90 degrees, and one behind is 180
+// degrees. This is distinct from the turn needed for the route's first step.
+func scorpionTargetTurn(from, target Pos, pointing Direction) int {
+	delta := Pos{R: target.R - from.R, C: target.C - from.C}
+	forward := deltas[pointing]
+	projection := delta.R*forward.R + delta.C*forward.C
+	if projection > 0 {
+		return 0
+	}
+	if projection < 0 {
+		return 2
+	}
+	return 1
+}
+
 func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direction, Pos, bool) {
 	from := bugs[scorpion].Pos
 	level := p.Terrain[from.R][from.C]
@@ -455,6 +472,7 @@ func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direc
 	}
 	for _, allowScorpions := range []bool{false, true} {
 		bestDistance := BoardSize*BoardSize + 1
+		bestTargetTurn := 3
 		bestDirection := Up
 		bestTarget := Pos{}
 		found := false
@@ -473,20 +491,22 @@ func scorpionTargetMetrics(p Puzzle, bugs []Bug, scorpion int) (int, bool, Direc
 				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
 					distance = 1
 					target = first
-				} else if bug.Kind != Scorpion || !allowScorpions {
+				} else if bug.Kind != Scorpion || bug.Egg || !allowScorpions {
 					continue
 				}
 			}
 			if distance == 0 {
-				rest, foundTarget, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions)
+				rest, foundTarget, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions, from, pointing)
 				if !ok {
 					continue
 				}
 				distance = rest + 1
 				target = foundTarget
 			}
-			if distance < bestDistance {
+			targetTurn := scorpionTargetTurn(from, target, pointing)
+			if distance < bestDistance || distance == bestDistance && targetTurn < bestTargetTurn {
 				bestDistance = distance
+				bestTargetTurn = targetTurn
 				bestDirection = dir
 				bestTarget = target
 				found = true
@@ -564,6 +584,7 @@ func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool)
 	}
 	for _, allowScorpions := range []bool{false, true} {
 		bestDistance := BoardSize*BoardSize + 1
+		bestTargetTurn := 3
 		bestDirection := Up
 		bestTarget := Pos{}
 		found := false
@@ -580,9 +601,11 @@ func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool)
 			if _, blocked := occupied[first]; blocked {
 				continue
 			}
-			distance, target, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions)
-			if ok && distance+1 < bestDistance {
+			distance, target, ok := distanceToReachableBug(p, bugs, first, level, occupied, allowScorpions, from, pointing)
+			targetTurn := scorpionTargetTurn(from, target, pointing)
+			if ok && (distance+1 < bestDistance || distance+1 == bestDistance && targetTurn < bestTargetTurn) {
 				bestDistance = distance + 1
+				bestTargetTurn = targetTurn
 				bestDirection = dir
 				bestTarget = target
 				found = true
@@ -595,7 +618,7 @@ func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool)
 	return Up, Pos{}, false
 }
 
-func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occupied map[Pos]int, allowScorpions bool) (int, Pos, bool) {
+func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occupied map[Pos]int, allowScorpions bool, from Pos, pointing Direction) (int, Pos, bool) {
 	type step struct {
 		pos      Pos
 		distance int
@@ -603,8 +626,14 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 	queue := []step{{pos: start}}
 	visited := [BoardSize][BoardSize]bool{}
 	visited[start.R][start.C] = true
+	bestDistance := BoardSize*BoardSize + 1
+	bestTurn := 3
+	bestTarget := Pos{}
 	for head := 0; head < len(queue); head++ {
 		cur := queue[head]
+		if cur.distance+1 > bestDistance {
+			break
+		}
 		for _, dir := range directions {
 			if hasWall(p, cur.pos, dir) {
 				continue
@@ -616,9 +645,15 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 			if index, blocked := occupied[next]; blocked {
 				bug := bugs[index]
 				if bug.Kind != Puck && bug.Kind != Scorpion && !bug.Egg {
-					return cur.distance + 1, next, true
+					targetTurn := scorpionTargetTurn(from, next, pointing)
+					if cur.distance+1 < bestDistance || targetTurn < bestTurn {
+						bestDistance = cur.distance + 1
+						bestTurn = targetTurn
+						bestTarget = next
+					}
+					continue
 				}
-				if bug.Kind != Scorpion || !allowScorpions {
+				if bug.Kind != Scorpion || bug.Egg || !allowScorpions {
 					continue
 				}
 			}
@@ -628,6 +663,9 @@ func distanceToReachableBug(p Puzzle, bugs []Bug, start Pos, level Terrain, occu
 			visited[next.R][next.C] = true
 			queue = append(queue, step{pos: next, distance: cur.distance + 1})
 		}
+	}
+	if bestDistance <= BoardSize*BoardSize {
+		return bestDistance, bestTarget, true
 	}
 	return 0, Pos{}, false
 }

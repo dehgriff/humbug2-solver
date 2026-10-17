@@ -382,6 +382,65 @@ func TestScorpionPrefersLeftTurnOverRightTurn(t *testing.T) {
 	}
 }
 
+func TestScorpionPrefersSideTargetOverEquidistantTargetBehind(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < 5; r++ {
+		for c := 0; c < 5; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	bugs := []Bug{
+		{Kind: Scorpion, Pos: Pos{2, 2}, Direction: Right},
+		{Kind: Ladybird, Pos: Pos{1, 1}},
+		{Kind: Grasshopper, Pos: Pos{4, 2}},
+	}
+	if dir, ok := scorpionDirection(p, bugs, 0); !ok || dir != Down {
+		t.Fatalf("side target should win over equally distant target behind, got %v, %v", dir, ok)
+	}
+}
+
+func TestD41MoveFourScorpionChoosesSideTarget(t *testing.T) {
+	data, err := os.ReadFile("puzzles/d41.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	steps := []struct {
+		kind BugType
+		from Pos
+		dir  Direction
+	}{
+		{Grasshopper, Pos{2, 1}, Right},
+		{Grasshopper, Pos{2, 2}, Right},
+		{Grasshopper, Pos{2, 3}, Down},
+		{Ladybird, Pos{1, 1}, Right},
+	}
+	var outcome moveOutcome
+	for _, step := range steps {
+		index := bugAt(state.Bugs, step.from)
+		if index < 0 || state.Bugs[index].Kind != step.kind {
+			t.Fatalf("missing %v at %+v", step.kind, step.from)
+		}
+		outcome = applyMoveDetailed(p, state, index, step.dir)
+		if outcome.status != moveApplied {
+			t.Fatalf("move from %+v failed: %s", step.from, outcome.reason)
+		}
+		state = outcome.state
+	}
+	if len(outcome.scorpionOrder) != 2 || outcome.scorpionOrder[0] != 1 || outcome.scorpionOrder[1] != 0 {
+		t.Fatalf("move 4 scorpion order = %v, want [1 0]", outcome.scorpionOrder)
+	}
+	if index := bugAt(state.Bugs, Pos{1, 3}); index < 0 || state.Bugs[index].Kind != Scorpion || state.Bugs[index].ID != 0 || state.Bugs[index].Direction != Left {
+		t.Fatalf("scorpion 1 should finish at (2,4) facing left: %+v", state.Bugs)
+	}
+	for _, bug := range state.Bugs {
+		if bug.Kind == Scorpion && bug.ID == 1 {
+			t.Fatalf("scorpion 2 should bounce toward the grasshopper and fall off: %+v", bug)
+		}
+	}
+}
+
 func TestScorpionTurnsToFaceTargetAfterMoving(t *testing.T) {
 	var p Puzzle
 	for r := 1; r <= 2; r++ {
@@ -549,6 +608,32 @@ func TestEggIsNotScorpionTarget(t *testing.T) {
 	s := State{Bugs: []Bug{{Kind: Scorpion, Pos: Pos{2, 0}, Direction: Right}, {Kind: Snail, Pos: Pos{2, 3}, Egg: true}}}
 	if !moveScorpions(p, &s) || s.Bugs[0].Pos != (Pos{2, 0}) {
 		t.Fatalf("scorpion should not pursue an egg: %+v", s.Bugs)
+	}
+}
+
+func TestScorpionEggBlocksScorpionRoute(t *testing.T) {
+	var p Puzzle
+	for c := 0; c < 5; c++ {
+		p.Terrain[2][c] = Low
+	}
+	bugs := []Bug{
+		{Kind: Scorpion, Pos: Pos{2, 0}, Direction: Right},
+		{Kind: Scorpion, Pos: Pos{2, 2}, Direction: Right, Egg: true},
+		{Kind: Snail, Pos: Pos{2, 4}},
+	}
+	if dir, ok := scorpionDirection(p, bugs, 0); ok {
+		t.Fatalf("scorpion egg should block the only route, got direction %v", dir)
+	}
+	if _, _, _, _, ok := scorpionTargetMetrics(p, bugs, 0); ok {
+		t.Fatal("scorpion egg should also block target-distance calculation")
+	}
+
+	bugs[1].Egg = false
+	if dir, ok := scorpionDirection(p, bugs, 0); !ok || dir != Right {
+		t.Fatalf("hatched scorpion should permit fallback routing, got direction %v, ok=%v", dir, ok)
+	}
+	if _, clear, _, _, ok := scorpionTargetMetrics(p, bugs, 0); !ok || clear {
+		t.Fatalf("route through hatched scorpion should be found as non-clear, clear=%v, ok=%v", clear, ok)
 	}
 }
 

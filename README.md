@@ -225,13 +225,16 @@ or `8 n u # snail merged with star at (3,4)`. Comments in the puzzle file are
 ignored during replay.
 
 Otherwise, a scorpion moves one step along a shortest same-level path to the
-nearest reachable hatched bug. Walls and occupied non-scorpion squares block
-paths. It prefers any wholly clear route, but if none exists it may plan a
-future route through other scorpions; it still cannot make its immediate step
-onto an occupied square. A trampoline is treated as an ordinary empty platform
-during route selection—the scorpion does not anticipate its bounce. If it actually steps onto that
-trampoline, normal landing/bounce behavior applies and may carry it over
-blockers or hatch eggs. If equally short first steps exist, the preference is
+nearest reachable hatched bug. Walls, occupied non-scorpion squares, and
+scorpion eggs block paths. It prefers any wholly clear route, but if none exists
+it may plan a future route through other hatched scorpions; it still cannot make
+its immediate step onto an occupied square. Between equally close targets, one
+ahead of the scorpion wins over one to either side, and a target to either side
+wins over one behind it. A trampoline is treated as an
+ordinary empty platform during route selection—the scorpion does not anticipate
+its bounce. If it actually steps onto that trampoline, normal landing/bounce
+behavior applies and may carry it over blockers or hatch eggs. If the target
+bearing is also equal, competing first steps are preferred in the order
 straight ahead, a 90-degree left turn, a 90-degree right turn, then a 180-degree
 turn. Its direction becomes the direction of its latest automatic or pushed
 movement. If its movement brings it adjacent to its selected target on the same
