@@ -251,15 +251,15 @@ func TestScorpionOrderIsRecalculatedAfterEachTurn(t *testing.T) {
 	}}
 
 	initial := scorpionTurnOrder(p, s.Bugs)
-	if len(initial) != 3 || initial[0] != 0 || initial[1] != 2 || initial[2] != 1 {
-		t.Fatalf("initial ranking = %v, want [0 2 1]", initial)
+	if len(initial) != 3 || initial[0] != 2 || initial[1] != 0 || initial[2] != 1 {
+		t.Fatalf("initial ranking = %v, want [2 0 1] when total route turning is considered", initial)
 	}
 	ok, actual, _ := moveScorpionsInOrder(p, &s)
 	if !ok {
 		t.Fatal("scorpion phase unexpectedly lost puzzle")
 	}
-	if len(actual) != 3 || actual[0] != 0 || actual[1] != 1 || actual[2] != 2 {
-		t.Fatalf("dynamic order = %v, want [0 1 2] after scorpion 1 hatches the egg", actual)
+	if len(actual) != 3 || actual[0] != 2 || actual[1] != 0 || actual[2] != 1 {
+		t.Fatalf("dynamic order = %v, want [2 0 1] with total route turning", actual)
 	}
 }
 
@@ -382,7 +382,7 @@ func TestScorpionPrefersLeftTurnOverRightTurn(t *testing.T) {
 	}
 }
 
-func TestScorpionPrefersSideTargetOverEquidistantTargetBehind(t *testing.T) {
+func TestScorpionPrefersEquidistantRouteWithLessTurning(t *testing.T) {
 	var p Puzzle
 	for r := 0; r < 5; r++ {
 		for c := 0; c < 5; c++ {
@@ -395,11 +395,11 @@ func TestScorpionPrefersSideTargetOverEquidistantTargetBehind(t *testing.T) {
 		{Kind: Grasshopper, Pos: Pos{4, 2}},
 	}
 	if dir, ok := scorpionDirection(p, bugs, 0); !ok || dir != Down {
-		t.Fatalf("side target should win over equally distant target behind, got %v, %v", dir, ok)
+		t.Fatalf("one-turn route should win over equally distant two-turn route, got %v, %v", dir, ok)
 	}
 }
 
-func TestD41MoveFourScorpionChoosesSideTarget(t *testing.T) {
+func TestD41MoveFourScorpionChoosesLowerTurningRoute(t *testing.T) {
 	data, err := os.ReadFile("puzzles/d41.puzzle")
 	if err != nil {
 		t.Fatal(err)
@@ -624,7 +624,7 @@ func TestScorpionEggBlocksScorpionRoute(t *testing.T) {
 	if dir, ok := scorpionDirection(p, bugs, 0); ok {
 		t.Fatalf("scorpion egg should block the only route, got direction %v", dir)
 	}
-	if _, _, _, _, ok := scorpionTargetMetrics(p, bugs, 0); ok {
+	if _, _, _, _, _, ok := scorpionTargetMetrics(p, bugs, 0); ok {
 		t.Fatal("scorpion egg should also block target-distance calculation")
 	}
 
@@ -632,7 +632,7 @@ func TestScorpionEggBlocksScorpionRoute(t *testing.T) {
 	if dir, ok := scorpionDirection(p, bugs, 0); !ok || dir != Right {
 		t.Fatalf("hatched scorpion should permit fallback routing, got direction %v, ok=%v", dir, ok)
 	}
-	if _, clear, _, _, ok := scorpionTargetMetrics(p, bugs, 0); !ok || clear {
+	if _, clear, _, _, _, ok := scorpionTargetMetrics(p, bugs, 0); !ok || clear {
 		t.Fatalf("route through hatched scorpion should be found as non-clear, clear=%v, ok=%v", clear, ok)
 	}
 }
@@ -659,12 +659,16 @@ func TestScorpionBouncesOnTrampolineAndHatchesEgg(t *testing.T) {
 }
 
 func TestS17BeeMoveMakesScorpionApproachAcrossPerceivedTrampolinePath(t *testing.T) {
-	data, err := os.ReadFile("puzzles/s17.puzzle")
-	if err != nil {
-		t.Fatal(err)
+	var p Puzzle
+	for c := 0; c < 4; c++ {
+		p.Terrain[1][c] = Low
 	}
-	p := puzzle(t, string(data))
-	state := State{Bugs: append([]Bug(nil), p.Bugs...), Stars: p.Stars, Walls: p.Walls}
+	p.Trampolines[1][2] = true
+	p.Bugs = []Bug{
+		{Kind: Scorpion, Pos: Pos{1, 0}, Direction: Right},
+		{Kind: Bee, Pos: Pos{1, 1}},
+	}
+	state := State{Bugs: append([]Bug(nil), p.Bugs...)}
 	canonicalize(&state)
 	bee := bugAt(state.Bugs, Pos{1, 1})
 	next, _, ok := applyMove(p, state, bee, Right)
@@ -674,6 +678,29 @@ func TestS17BeeMoveMakesScorpionApproachAcrossPerceivedTrampolinePath(t *testing
 	scorpion := bugAt(next.Bugs, Pos{1, 1})
 	if scorpion < 0 || next.Bugs[scorpion].Kind != Scorpion {
 		t.Fatalf("scorpion should move right into the bee's old square: %+v", next.Bugs)
+	}
+}
+
+func TestS25FirstMoveUsesTotalRouteTurningForScorpionOrder(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s25.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	grasshopper := bugAt(state.Bugs, Pos{3, 4})
+	outcome := applyMoveDetailed(p, state, grasshopper, Down)
+	if outcome.status != moveApplied {
+		t.Fatalf("grasshopper move failed: %s", outcome.reason)
+	}
+	wantMovingPrefix := []uint8{4, 1, 3, 2}
+	if len(outcome.scorpionOrder) < len(wantMovingPrefix) {
+		t.Fatalf("scorpion order = %v, want prefix %v", outcome.scorpionOrder, wantMovingPrefix)
+	}
+	for i, want := range wantMovingPrefix {
+		if outcome.scorpionOrder[i] != want {
+			t.Fatalf("scorpion order = %v, want moving prefix %v", outcome.scorpionOrder, wantMovingPrefix)
+		}
 	}
 }
 

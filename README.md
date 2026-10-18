@@ -200,9 +200,10 @@ always acts before one whose route passes through another scorpion, even when
 the blocked route is shorter. Distance is compared within that route class.
 After the selected scorpion acts, route classes, target choices, and distances
 are recalculated on the resulting board for the scorpions still waiting to act.
-For equal distances, a scorpion pointing along its intended move wins over one
-requiring a 90-degree turn, which wins over one requiring a 180-degree turn.
-If still tied, a scorpion whose selected target is directly ahead along a
+For equal distances, the scorpion whose shortest route requires the least
+accumulated turning acts first. This includes the initial turn from its current
+facing and every bend in the route; a reversal counts as two 90-degree turns.
+If still tied, a scorpion whose selected target lies directly ahead along a
 straight, unobstructed path wins. After that, the scorpion with the higher row
 number wins; on the same row, the lower column number wins. Stable numbering is
 retained only as a final fallback, and each scorpion acts at most once during
@@ -228,13 +229,14 @@ Otherwise, a scorpion moves one step along a shortest same-level path to the
 nearest reachable hatched bug. Walls, occupied non-scorpion squares, and
 scorpion eggs block paths. It prefers any wholly clear route, but if none exists
 it may plan a future route through other hatched scorpions; it still cannot make
-its immediate step onto an occupied square. Between equally close targets, one
-ahead of the scorpion wins over one to either side, and a target to either side
-wins over one behind it. A trampoline is treated as an
+its immediate step onto an occupied square. Among equally short routes, it
+prefers the route with the least accumulated turning, counting the initial turn
+from its current facing direction and every later bend. A 180-degree reversal
+counts as two 90-degree turns. A trampoline is treated as an
 ordinary empty platform during route selection—the scorpion does not anticipate
 its bounce. If it actually steps onto that trampoline, normal landing/bounce
-behavior applies and may carry it over blockers or hatch eggs. If the target
-bearing is also equal, competing first steps are preferred in the order
+behavior applies and may carry it over blockers or hatch eggs. If total turning
+is also equal, competing first steps are preferred in the order
 straight ahead, a 90-degree left turn, a 90-degree right turn, then a 180-degree
 turn. Its direction becomes the direction of its latest automatic or pushed
 movement. If its movement brings it adjacent to its selected target on the same
