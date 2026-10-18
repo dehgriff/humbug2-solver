@@ -229,23 +229,83 @@ func hasPushingBeetle(p Puzzle) bool {
 	return false
 }
 
-// searchLowerBound estimates remaining player moves. It is admissible without
-// a pushing Beetle. The default optimized mode assumes a Beetle clears at most
-// one counted bug per move. Caterpillars contribute zero because a nudge can
-// score one as a side effect; an egg already on a star likewise contributes
-// zero because landing can hatch it as a side effect.
+// searchLowerBound estimates remaining player moves. Every counted bug needs
+// at least one move. A bug also needs at least two moves unless it can be
+// assigned to a distinct remaining star in its current row or column, since a
+// single move cannot turn a corner. Finding the maximum such assignment gives
+// a cheap, capacity-aware lower bound (including multi-star squares).
+//
+// It is admissible without a pushing Beetle. The default optimized mode
+// assumes a Beetle clears at most one counted bug per move. Caterpillars
+// contribute zero because a nudge can score one as a side effect; an egg
+// already on a star likewise contributes zero because landing can hatch it as
+// a side effect.
 func searchLowerBound(s State) int {
-	count := 0
+	bugs := make([]Pos, 0, len(s.Bugs))
+	ignoredGoals := 0
 	for _, bug := range s.Bugs {
 		if bug.Kind == Puck || bug.Kind == Scorpion || bug.Kind == Caterpillar {
+			if bug.Kind == Caterpillar {
+				ignoredGoals++
+			}
 			continue
 		}
 		if bug.Egg && s.Stars[bug.Pos.R][bug.Pos.C] > 0 {
+			ignoredGoals++
 			continue
 		}
-		count++
+		bugs = append(bugs, bug.Pos)
 	}
-	return count
+	if len(bugs) == 0 {
+		return 0
+	}
+
+	// Expand star capacities into slots. At most ten bugs can be present in a
+	// legal puzzle in practice, so this matching is negligible beside move
+	// generation and scorpion pathfinding.
+	stars := make([]Pos, 0, len(bugs))
+	for r := 0; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			for n := uint8(0); n < s.Stars[r][c]; n++ {
+				stars = append(stars, Pos{r, c})
+			}
+		}
+	}
+	// If ignored goal bugs may need any of these slots, there is not enough
+	// information to charge other bugs for turning without risking an
+	// overestimate. Retain the original one-move-per-counted-bug bound.
+	if len(stars) < len(bugs)+ignoredGoals {
+		return len(bugs)
+	}
+
+	// Maximum bipartite matching using only the cost-one (same-axis) edges.
+	// Unmatched bugs have relaxed cost two, hence 2*bugs - matched.
+	starBug := make([]int, len(stars))
+	for i := range starBug {
+		starBug[i] = -1
+	}
+	matched := 0
+	for bug := range bugs {
+		seen := make([]bool, len(stars))
+		if matchAlignedStar(bug, bugs, stars, starBug, seen) {
+			matched++
+		}
+	}
+	return 2*len(bugs) - matched
+}
+
+func matchAlignedStar(bug int, bugs, stars []Pos, starBug []int, seen []bool) bool {
+	for star := range stars {
+		if seen[star] || bugs[bug].R != stars[star].R && bugs[bug].C != stars[star].C {
+			continue
+		}
+		seen[star] = true
+		if starBug[star] < 0 || matchAlignedStar(starBug[star], bugs, stars, starBug, seen) {
+			starBug[star] = bug
+			return true
+		}
+	}
+	return false
 }
 
 func hasGoldBeetle(p Puzzle) bool {

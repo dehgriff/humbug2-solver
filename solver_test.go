@@ -84,6 +84,33 @@ func TestCaterpillarContributesZeroToSearchLowerBound(t *testing.T) {
 	}
 }
 
+func TestSearchLowerBoundUsesDistinctAlignedStars(t *testing.T) {
+	state := State{Bugs: []Bug{
+		{Kind: Snail, Pos: Pos{2, 0}},
+		{Kind: Ladybird, Pos: Pos{2, 1}},
+	}}
+	state.Stars[2][4] = 1
+	state.Stars[5][5] = 1
+	// Only one bug can use the aligned star, so the relaxed costs are 1 + 2.
+	if got := searchLowerBound(state); got != 3 {
+		t.Fatalf("got lower bound %d, want 3", got)
+	}
+
+	state.Stars[2][4] = 2
+	// Both bugs can now be assigned to a slot on the same row.
+	if got := searchLowerBound(state); got != 2 {
+		t.Fatalf("multi-star lower bound = %d, want 2", got)
+	}
+}
+
+func TestSearchLowerBoundAccountsForRequiredTurn(t *testing.T) {
+	state := State{Bugs: []Bug{{Kind: Snail, Pos: Pos{1, 1}}}}
+	state.Stars[4][5] = 1
+	if got := searchLowerBound(state); got != 2 {
+		t.Fatalf("got lower bound %d, want 2", got)
+	}
+}
+
 func TestAStarDoesNotMistakeEggOnStarForSolvedPuzzle(t *testing.T) {
 	var p Puzzle
 	p.MaxMoves = 1
