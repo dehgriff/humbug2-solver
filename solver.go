@@ -135,12 +135,13 @@ func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, boo
 func solveAStar(p Puzzle, start State, progress func(SearchProgress)) ([]Move, bool) {
 	includeWalls := hasGoldBeetle(p)
 	startKey := searchStateKey(start, includeWalls)
+	successorCache := make(map[string][]successor)
 	totalExpanded := 0
 	for bound := searchLowerBound(start); bound <= p.MaxMoves; bound++ {
 		bestDepth := map[string]int{startKey: 0}
 		path := make([]Move, 0, bound)
 		expanded := 0
-		if idaSearch(p, start, 0, bound, includeWalls, bestDepth, &path, &expanded) {
+		if idaSearch(p, start, startKey, 0, bound, includeWalls, bestDepth, successorCache, &path, &expanded) {
 			if progress != nil {
 				progress(SearchProgress{Algorithm: "astar", Depth: bound, States: expanded, TotalStates: totalExpanded + expanded})
 			}
@@ -158,10 +159,47 @@ type successor struct {
 	state State
 	move  Move
 	h     int
+	key   string
 }
 
-func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestDepth map[string]int, path *[]Move, expanded *int) bool {
+// A successor entry retains several complete states. Keeping the cache bounded
+// avoids turning a large IDA* search into an accidental memory-bound search.
+// Earlier, shallower states enter first and are also the ones reused by the
+// greatest number of later bound iterations.
+const maxSuccessorCacheEntries = 20000
+
+func idaSearch(p Puzzle, state State, stateKey string, depth, bound int, includeWalls bool, bestDepth map[string]int, successorCache map[string][]successor, path *[]Move, expanded *int) bool {
 	*expanded++
+	successors, cached := successorCache[stateKey]
+	if !cached {
+		successors = generateSuccessors(p, state, includeWalls)
+		if len(successorCache) < maxSuccessorCacheEntries {
+			successorCache[stateKey] = successors
+		}
+	}
+	for _, next := range successors {
+		if depth+1+next.h > bound {
+			continue
+		}
+		*path = append(*path, next.move)
+		if remainingBugCount(next.state) == 0 {
+			return true
+		}
+		nextDepth := depth + 1
+		if oldDepth, exists := bestDepth[next.key]; exists && oldDepth <= nextDepth {
+			*path = (*path)[:len(*path)-1]
+			continue
+		}
+		bestDepth[next.key] = nextDepth
+		if idaSearch(p, next.state, next.key, nextDepth, bound, includeWalls, bestDepth, successorCache, path, expanded) {
+			return true
+		}
+		*path = (*path)[:len(*path)-1]
+	}
+	return false
+}
+
+func generateSuccessors(p Puzzle, state State, includeWalls bool) []successor {
 	successors := make([]successor, 0, len(state.Bugs)*len(directions))
 	for i := range state.Bugs {
 		if !canInitiateMove(state.Bugs[i]) {
@@ -176,31 +214,17 @@ func idaSearch(p Puzzle, state State, depth, bound int, includeWalls bool, bestD
 				continue
 			}
 			h := searchLowerBound(next)
-			if depth+1+h <= bound {
-				successors = append(successors, successor{state: next, move: move, h: h})
-			}
+			successors = append(successors, successor{
+				state: next,
+				move:  move,
+				h:     h,
+				key:   searchStateKey(next, includeWalls),
+			})
 		}
 	}
 	// Scoring moves first makes a solution quick to find in the final iteration.
 	sort.SliceStable(successors, func(i, j int) bool { return successors[i].h < successors[j].h })
-	for _, next := range successors {
-		*path = append(*path, next.move)
-		if remainingBugCount(next.state) == 0 {
-			return true
-		}
-		nextDepth := depth + 1
-		key := searchStateKey(next.state, includeWalls)
-		if oldDepth, exists := bestDepth[key]; exists && oldDepth <= nextDepth {
-			*path = (*path)[:len(*path)-1]
-			continue
-		}
-		bestDepth[key] = nextDepth
-		if idaSearch(p, next.state, nextDepth, bound, includeWalls, bestDepth, path, expanded) {
-			return true
-		}
-		*path = (*path)[:len(*path)-1]
-	}
-	return false
+	return successors
 }
 
 func violatesMoveConstraints(p Puzzle, moved Bug, next State) bool {
