@@ -15,3 +15,22 @@ walls:
 eggs:
 egg 3 2
 #egg 3 5
+solution:
+1 l l
+2 b u
+3 b l
+4 p d
+5 p l # pink ladybird merged with star at (3,1)
+6 s l
+7 y r
+8 b u
+9 b l
+10 l l
+11 l u
+12 l l # ladybird merged with star at (1,2)
+13 b d # bee merged with star at (3,1)
+14 y r
+15 s d
+16 y d
+17 s r # spider merged with star at (5,7)
+18 y l # fly merged with star at (5,7)

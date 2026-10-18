@@ -4,3 +4,5 @@ board:
 .
 .
 ..lo*
+solution:
+1 l r # ladybird merged with star at (3,5)

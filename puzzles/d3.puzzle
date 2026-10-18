@@ -6,3 +6,10 @@ board:
 ...o.o
 ...bon*
 ...*
+solution:
+1 n r # snail merged with star at (4,7)
+2 b r
+3 b u # bee merged with star at (1,6)
+4 l l
+5 p d # pink ladybird merged with star at (5,4)
+6 l l # ladybird merged with star at (2,3)

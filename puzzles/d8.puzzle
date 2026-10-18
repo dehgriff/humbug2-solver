@@ -10,3 +10,13 @@ y*..x
 walls:
 eggs:
 egg 4 5
+solution:
+1 y 3 1 r # fly merged with star at (3,2)
+2 g d
+3 g r
+4 l u
+5 g d
+6 g l # grasshopper merged with star at (6,4)
+7 y u
+8 l u # ladybird merged with star at (1,5)
+9 y u # fly merged with star at (1,5)

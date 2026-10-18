@@ -8,3 +8,17 @@ board:
 ......g
 ......l
 ....oooo**
+solution:
+1 g u
+2 g l # grasshopper merged with star at (3,4)
+3 l u
+4 l d
+5 l r # ladybird merged with star at (7,9)
+6 n d
+7 n d
+8 n d
+9 n r
+10 n r
+11 n r # snail merged with star at (7,10)
+12 y l
+13 y l # fly merged with star at (3,3)

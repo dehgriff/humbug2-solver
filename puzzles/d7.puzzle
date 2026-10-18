@@ -10,3 +10,26 @@ board:
 ......o
 walls:
 eggs:
+solution:
+1 l r
+2 p 6 7 u
+3 s l
+4 p 3 4 d
+5 l l
+6 s d # spider merged with star at (5,5)
+7 l r
+8 l u
+9 l l
+10 p 6 4 r
+11 p 6 7 u
+12 p 5 7 l # pink ladybird merged with star at (5,6)
+13 p d
+14 l r
+15 l d
+16 l l
+17 p u
+18 l r
+19 p l
+20 l u
+21 p r # pink ladybird merged with star at (4,6)
+22 l l # ladybird merged with star at (4,5)

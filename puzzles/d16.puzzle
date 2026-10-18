@@ -6,3 +6,20 @@ ox
 tn
 xs..f
 oo2o2
+solution:
+1 t d
+2 n l
+3 s u
+4 f l
+5 n r
+6 s d
+7 t r # spider merged with star at (5,3)
+8 t r # beetle merged with star at (5,3)
+9 f u
+10 n d
+11 f d
+12 f r # butterfly merged with star at (5,5)
+13 n d
+14 n r
+15 n r
+16 n r # snail merged with star at (5,5)

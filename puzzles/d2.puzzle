@@ -8,3 +8,19 @@ poooo*
 ...s
 eggs:
 egg 3 4
+solution:
+1 p r
+2 p d
+3 l l
+4 p u
+5 p l
+6 s u
+7 p r
+8 s d
+9 s l
+10 s u
+11 s r # spider merged with star at (2,5)
+12 p d # pink ladybird merged with star at (4,3)
+13 l r
+14 l u
+15 l r # ladybird merged with star at (1,6)

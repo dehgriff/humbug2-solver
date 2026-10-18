@@ -10,12 +10,28 @@ import (
 func main() {
 	play := flag.Bool("play", false, "play the puzzle interactively instead of solving it")
 	playSolution := flag.Bool("play-soln", false, "step through the solution section in the puzzle file")
+	testPuzzles := flag.Bool("test", false, "replay embedded solutions in every .puzzle file in a directory")
 	safe := flag.Bool("safe", false, "use exact BFS for puzzles containing pushing beetles")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln] [-safe] PUZZLE\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "       %s -test [PUZZLE-DIRECTORY]\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "Find a shortest Humbug2 solution up to the puzzle's max-moves limit.")
 	}
 	flag.Parse()
+	if *testPuzzles {
+		if *play || *playSolution || *safe || flag.NArg() > 1 {
+			flag.Usage()
+			os.Exit(2)
+		}
+		dir := "puzzles"
+		if flag.NArg() == 1 {
+			dir = flag.Arg(0)
+		}
+		if err := testPuzzleDirectory(dir, os.Stdout); err != nil {
+			fatal(err)
+		}
+		return
+	}
 	if flag.NArg() != 1 {
 		flag.Usage()
 		os.Exit(2)

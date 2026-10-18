@@ -10,3 +10,15 @@ board:
 ..c
 walls:
 wall 3 6 down
+solution:
+1 f r
+2 f u # butterfly merged with star at (2,6)
+3 d d # gold beetle merged with star at (4,6)
+4 y l
+5 y l
+6 y l
+7 c u
+8 c r
+9 y d
+10 c l # cockroach merged with star at (6,4)
+11 y r # fly merged with star at (6,4)

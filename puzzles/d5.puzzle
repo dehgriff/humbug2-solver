@@ -9,3 +9,33 @@ board:
 walls:
 wall 1 1 left
 eggs:
+solution:
+1 l r
+2 l d
+3 l l
+4 p l
+5 s l
+6 s d
+7 b u
+8 p r
+9 b d
+10 p l
+11 b u
+12 b l
+13 b r
+14 b d
+15 p u
+16 p l
+17 s l
+18 s u
+19 s l # spider merged with star at (1,1)
+20 l r
+21 p d # pink ladybird merged with star at (5,5)
+22 b u
+23 b l
+24 b l # bee merged with star at (2,1)
+25 l d
+26 l r
+27 l u
+28 l l
+29 l r # ladybird merged with star at (2,8)

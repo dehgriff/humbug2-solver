@@ -9,3 +9,24 @@ ooxo*
 walls:
 eggs:
 egg 3 4
+solution:
+1 p r
+2 p d
+3 p r
+4 s d
+5 s l
+6 l u
+7 p l
+8 p u
+9 s r # spider merged with star at (2,5)
+10 p d
+11 l d
+12 p u
+13 l u
+14 l l
+15 p u
+16 l r
+17 l l
+18 p l
+19 l d # ladybird merged with star at (3,1)
+20 p d # pink ladybird merged with star at (4,2)

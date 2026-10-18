@@ -8,3 +8,21 @@ o.Txo
 o.P
 walls:
 wall 2 1 right
+solution:
+1 d d
+2 t u
+3 l u
+4 l l # ladybird merged with star at (1,1)
+5 t r
+6 t r
+7 t d
+8 t l
+9 p u
+10 p r # pink ladybird merged with star at (4,5)
+11 d u
+12 t u
+13 t l
+14 d l
+15 t u # beetle merged with star at (1,2)
+16 d l
+17 d d # gold beetle merged with star at (4,1)

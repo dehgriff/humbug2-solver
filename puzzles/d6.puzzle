@@ -9,3 +9,14 @@ board:
 ...loob
 walls:
 eggs:
+solution:
+1 l r
+2 p d
+3 p r
+4 p u
+5 b l
+6 s l
+7 p d # pink ladybird merged with star at (5,5)
+8 b u # bee merged with star at (4,5)
+9 s d # spider merged with star at (5,6)
+10 l u # ladybird merged with star at (4,6)

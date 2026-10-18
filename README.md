@@ -262,6 +262,35 @@ Use `-safe` when that assumption may not hold:
 go run . -safe puzzles/example.puzzle
 ```
 
+## Puzzle regression tests
+
+Use `-test` to parse every `.puzzle` file in a directory and replay every
+embedded solution from beginning to end:
+
+```sh
+go run . -test puzzles
+```
+
+The report marks files as `PASS`, `MISSING`, `INVALID`, or `FAIL`. A missing
+solution is reported but does not make the command fail; an invalid puzzle or a
+solution that no longer completes the puzzle produces a non-zero exit status.
+If the directory is omitted, `puzzles` is used.
+
+Solving a puzzle writes the discovered shortest solution back into that puzzle
+file. The following resumable shell loop solves every file that still lacks a
+solution section:
+
+```sh
+for puzzle in puzzles/*.puzzle; do
+    if ! grep -qi '^solution:' "$puzzle"; then
+        go run . "$puzzle"
+    fi
+done
+```
+
+Stopping the loop is safe: completed files retain their solution sections, and
+running the loop again skips them.
+
 Safe mode falls back to breadth-first search for puzzles containing a pushing
 Beetle and therefore retains the unconditional shortest-solution guarantee.
 For puzzles without one, `-safe` still uses exact iterative-deepening A*.

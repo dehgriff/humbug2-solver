@@ -10,3 +10,24 @@ board:
 ...o
 walls:
 wall 3 1 right
+solution:
+1 p u
+2 l u
+3 p d
+4 s d
+5 p u
+6 p u
+7 s u
+8 s d
+9 p d
+10 s u
+11 l d
+12 p u
+13 l l
+14 s u
+15 p l # pink ladybird merged with star at (1,1)
+16 l r
+17 l l # ladybird merged with star at (2,1)
+18 s d
+19 s u
+20 s l # spider merged with star at (3,2)

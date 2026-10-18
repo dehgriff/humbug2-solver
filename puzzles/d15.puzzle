@@ -10,3 +10,16 @@ OOOOOO
 ...T.P
 eggs:
 egg 6 4
+solution:
+1 p u
+2 t u
+3 t l
+4 t l
+5 s d
+6 t u
+7 s r # spider merged with star at (4,7)
+8 l r # ladybird merged with star at (4,7)
+9 p l
+10 t u
+11 p l # pink ladybird merged with star at (4,1)
+12 t l # beetle merged with star at (4,1)
