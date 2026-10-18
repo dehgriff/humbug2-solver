@@ -581,10 +581,14 @@ func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool)
 			if !inside(first) || p.Terrain[first.R][first.C] != level {
 				continue
 			}
-			// A scorpion may plan a future route through another scorpion,
-			// but it still cannot step onto an occupied adjacent square.
-			if _, blocked := occupied[first]; blocked {
-				continue
+			// A selected route may pass through another hatched scorpion, even
+			// in its first square. If the best route starts that way, the move
+			// will be blocked rather than replaced by a longer alternative.
+			if index, blocked := occupied[first]; blocked {
+				bug := bugs[index]
+				if bug.Kind != Scorpion || bug.Egg || !allowScorpions {
+					continue
+				}
 			}
 			distance, target, laterTurns, ok := distanceToReachableBugWithTurns(p, bugs, first, dir, level, occupied, allowScorpions)
 			turns := scorpionTurnAmount(pointing, dir) + laterTurns
@@ -597,6 +601,9 @@ func scorpionMovePlan(p Puzzle, bugs []Bug, scorpion int) (Direction, Pos, bool)
 			}
 		}
 		if found {
+			if _, blocked := occupied[add(from, deltas[bestDirection])]; blocked {
+				return bestDirection, bestTarget, false
+			}
 			return bestDirection, bestTarget, true
 		}
 	}

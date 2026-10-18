@@ -229,7 +229,10 @@ Otherwise, a scorpion moves one step along a shortest same-level path to the
 nearest reachable hatched bug. Walls, occupied non-scorpion squares, and
 scorpion eggs block paths. It prefers any wholly clear route, but if none exists
 it may plan a future route through other hatched scorpions; it still cannot make
-its immediate step onto an occupied square. Among equally short routes, it
+its immediate step onto an occupied square. A scorpion first selects its best
+route, including routes whose first square contains another scorpion. If that
+selected first square is occupied, it stays still rather than choosing a longer
+alternative route. Among equally short routes, it
 prefers the route with the least accumulated turning, counting the initial turn
 from its current facing direction and every later bend. A 180-degree reversal
 counts as two 90-degree turns. A trampoline is treated as an

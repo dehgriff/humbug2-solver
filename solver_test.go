@@ -399,6 +399,51 @@ func TestScorpionPrefersEquidistantRouteWithLessTurning(t *testing.T) {
 	}
 }
 
+func TestScorpionDoesNotReplaceBlockedPreferredRouteWithLongerRoute(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < 3; r++ {
+		for c := 0; c < 3; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	bugs := []Bug{
+		{Kind: Scorpion, ID: 0, Pos: Pos{0, 0}, Direction: Down},
+		{Kind: Scorpion, ID: 1, Pos: Pos{1, 0}, Direction: Down},
+		{Kind: Scorpion, ID: 2, Pos: Pos{2, 1}, Direction: Left},
+		{Kind: Snail, Pos: Pos{2, 0}},
+	}
+	if dir, _, moves := scorpionMovePlan(p, bugs, 0); moves || dir != Down {
+		t.Fatalf("preferred route should remain down but be blocked, got direction %v, moves=%v", dir, moves)
+	}
+}
+
+func TestScorpionsCanFollowOneAnotherAlongOneLine(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < 4; r++ {
+		p.Terrain[r][0] = Low
+	}
+	state := State{Bugs: []Bug{
+		{Kind: Scorpion, ID: 0, Pos: Pos{0, 0}, Direction: Down},
+		{Kind: Scorpion, ID: 1, Pos: Pos{1, 0}, Direction: Down},
+		{Kind: Snail, Pos: Pos{3, 0}},
+	}}
+	if ok, _, _ := moveScorpionsInOrder(p, &state); !ok {
+		t.Fatal("scorpion phase unexpectedly lost puzzle")
+	}
+	for _, bug := range state.Bugs {
+		if bug.Kind != Scorpion {
+			continue
+		}
+		want := Pos{1, 0}
+		if bug.ID == 1 {
+			want = Pos{2, 0}
+		}
+		if bug.Pos != want {
+			t.Fatalf("scorpion %d position = %+v, want %+v", bug.ID+1, bug.Pos, want)
+		}
+	}
+}
+
 func TestD41MoveFourScorpionChoosesLowerTurningRoute(t *testing.T) {
 	data, err := os.ReadFile("puzzles/d41.puzzle")
 	if err != nil {
@@ -700,6 +745,58 @@ func TestS25FirstMoveUsesTotalRouteTurningForScorpionOrder(t *testing.T) {
 	for i, want := range wantMovingPrefix {
 		if outcome.scorpionOrder[i] != want {
 			t.Fatalf("scorpion order = %v, want moving prefix %v", outcome.scorpionOrder, wantMovingPrefix)
+		}
+	}
+}
+
+func TestS25BlockedPreferredRouteLeavesScorpionThreeStationary(t *testing.T) {
+	data, err := os.ReadFile("puzzles/s25.puzzle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := puzzle(t, string(data))
+	state := initialState(p)
+	butterfly := bugAt(state.Bugs, Pos{3, 6})
+	first := applyMoveDetailed(p, state, butterfly, Left)
+	if first.status != moveApplied {
+		t.Fatalf("first butterfly move failed: %s", first.reason)
+	}
+	state = first.state
+	before := make(map[uint8]Pos)
+	for _, bug := range state.Bugs {
+		if bug.Kind == Scorpion {
+			before[bug.ID] = bug.Pos
+		}
+	}
+	butterfly = bugAt(state.Bugs, Pos{3, 3})
+	second := applyMoveDetailed(p, state, butterfly, Left)
+	if second.status != moveApplied {
+		t.Fatalf("second butterfly move failed: %s", second.reason)
+	}
+	state = second.state
+	{
+		order := second.scorpionOrder
+		var moved []uint8
+		for _, id := range order {
+			for _, bug := range state.Bugs {
+				if bug.Kind == Scorpion && bug.ID == id && bug.Pos != before[id] {
+					moved = append(moved, id)
+				}
+			}
+		}
+		want := []uint8{4, 3, 1, 5, 0}
+		if len(moved) != len(want) {
+			t.Fatalf("moving scorpions = %v, want %v; full order %v", moved, want, order)
+		}
+		for i := range want {
+			if moved[i] != want[i] {
+				t.Fatalf("moving scorpions = %v, want %v; full order %v", moved, want, order)
+			}
+		}
+	}
+	for _, bug := range state.Bugs {
+		if bug.Kind == Scorpion && bug.ID == 2 && bug.Pos != (Pos{2, 2}) {
+			t.Fatalf("scorpion 3 moved to %+v, want it to remain at (3,3)", bug.Pos)
 		}
 	}
 }
