@@ -66,22 +66,11 @@ func main() {
 		switch progress.Algorithm {
 		case "astar":
 			fmt.Printf("Lower bound %d: %d state(s) searched (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
-		case "count":
-			fmt.Printf("Counting distinct solutions of length %d...\n", progress.Depth)
 		default:
 			fmt.Printf("Depth %d: %d state(s) (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
 		}
 	}}
-	var moves []Move
-	var solutionCount string
-	var solved bool
-	if *countSolutions {
-		countedMoves, count, countedSolved := SolveAndCountShortest(p, options)
-		moves, solved = countedMoves, countedSolved
-		solutionCount = count.String()
-	} else {
-		moves, solved = SolveWithOptions(p, options)
-	}
+	moves, solved := SolveWithOptions(p, options)
 	if !solved {
 		fmt.Printf("No solution within %d moves.\n", p.MaxMoves)
 		return
@@ -94,9 +83,6 @@ func main() {
 		fatal(fmt.Errorf("write solution to %s: %w", flag.Arg(0), err))
 	}
 	fmt.Printf("Shortest solution: %d move(s)\n", len(moves))
-	if *countSolutions {
-		fmt.Printf("Distinct shortest solutions: %s\n", solutionCount)
-	}
 	for i, move := range moves {
 		fmt.Printf("%d. %s", i+1, move)
 		if len(moveNotes[i]) > 0 {
@@ -105,6 +91,11 @@ func main() {
 		fmt.Println()
 	}
 	fmt.Printf("Solution written to %s\n", flag.Arg(0))
+	if *countSolutions {
+		fmt.Printf("Counting distinct solutions of length %d...\n", len(moves))
+		count := CountSolutionsAtDepth(p, len(moves), *safe)
+		fmt.Printf("Distinct shortest solutions: %s\n", count)
+	}
 }
 
 func fatal(err error) {

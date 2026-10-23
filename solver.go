@@ -97,16 +97,21 @@ func SolveAndCountShortest(p Puzzle, options SolveOptions) ([]Move, *big.Int, bo
 	if !solved {
 		return nil, new(big.Int), false
 	}
+	if options.Progress != nil {
+		options.Progress(SearchProgress{Algorithm: "count", Depth: len(moves)})
+	}
+	return moves, CountSolutionsAtDepth(p, len(moves), options.Safe), true
+}
+
+// CountSolutionsAtDepth counts distinct winning move sequences of exactly the
+// requested length. Callers normally pass the length of a shortest solution.
+func CountSolutionsAtDepth(p Puzzle, depth int, safe bool) *big.Int {
 	start := initialState(p)
 	includeWalls := hasGoldBeetle(p)
 	cache := make(map[string][]successor)
 	memo := make(map[solutionCountKey]*big.Int)
-	useHeuristic := !options.Safe || !hasPushingBeetle(p)
-	if options.Progress != nil {
-		options.Progress(SearchProgress{Algorithm: "count", Depth: len(moves)})
-	}
-	count := countSolutionsAtDepth(p, start, searchStateKey(start, includeWalls), len(moves), includeWalls, useHeuristic, cache, memo)
-	return moves, count, true
+	useHeuristic := !safe || !hasPushingBeetle(p)
+	return countSolutionsAtDepth(p, start, searchStateKey(start, includeWalls), depth, includeWalls, useHeuristic, cache, memo)
 }
 
 func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, bool) {

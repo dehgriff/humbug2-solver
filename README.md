@@ -273,8 +273,10 @@ To count every distinct shortest move sequence, use `-count-solutions`:
 go run . -count-solutions puzzles/example.puzzle
 ```
 
-The solver first finds the shortest solution length, then explores all winning
-move sequences of exactly that length and prints the total. It counts move
+The solver first finds and prints a shortest solution and writes it to the
+puzzle file. Only then does it explore all winning move sequences of exactly
+that length and print the total, so a long-running count can be interrupted
+without losing the first solution. It counts move
 sequences rather than distinct final board states, so two different orders
 which converge on the same position are both included. Identical suffixes are
 memoised rather than explored repeatedly, and the count uses arbitrary-
