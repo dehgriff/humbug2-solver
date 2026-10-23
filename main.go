@@ -12,14 +12,15 @@ func main() {
 	playSolution := flag.Bool("play-soln", false, "step through the solution section in the puzzle file")
 	testPuzzles := flag.Bool("test", false, "replay embedded solutions in every .puzzle file in a directory")
 	safe := flag.Bool("safe", false, "use exact BFS for puzzles containing pushing beetles")
+	countSolutions := flag.Bool("count-solutions", false, "count all distinct shortest solution sequences")
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln] [-safe] PUZZLE\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln] [-safe] [-count-solutions] PUZZLE\n", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "       %s -test [PUZZLE-DIRECTORY]\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "Find a shortest Humbug2 solution up to the puzzle's max-moves limit.")
 	}
 	flag.Parse()
 	if *testPuzzles {
-		if *play || *playSolution || *safe || flag.NArg() > 1 {
+		if *play || *playSolution || *safe || *countSolutions || flag.NArg() > 1 {
 			flag.Usage()
 			os.Exit(2)
 		}
@@ -36,8 +37,8 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	if *play && *playSolution {
-		fatal(fmt.Errorf("-play and -play-soln cannot be used together"))
+	if *play && *playSolution || *countSolutions && (*play || *playSolution) {
+		fatal(fmt.Errorf("-play, -play-soln, and -count-solutions cannot be combined"))
 	}
 	f, err := os.Open(flag.Arg(0))
 	if err != nil {
@@ -61,13 +62,26 @@ func main() {
 		}
 		return
 	}
-	moves, solved := SolveWithOptions(p, SolveOptions{Safe: *safe, Progress: func(progress SearchProgress) {
-		if progress.Algorithm == "astar" {
+	options := SolveOptions{Safe: *safe, Progress: func(progress SearchProgress) {
+		switch progress.Algorithm {
+		case "astar":
 			fmt.Printf("Lower bound %d: %d state(s) searched (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
-		} else {
+		case "count":
+			fmt.Printf("Counting distinct solutions of length %d...\n", progress.Depth)
+		default:
 			fmt.Printf("Depth %d: %d state(s) (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
 		}
-	}})
+	}}
+	var moves []Move
+	var solutionCount string
+	var solved bool
+	if *countSolutions {
+		countedMoves, count, countedSolved := SolveAndCountShortest(p, options)
+		moves, solved = countedMoves, countedSolved
+		solutionCount = count.String()
+	} else {
+		moves, solved = SolveWithOptions(p, options)
+	}
 	if !solved {
 		fmt.Printf("No solution within %d moves.\n", p.MaxMoves)
 		return
@@ -80,6 +94,9 @@ func main() {
 		fatal(fmt.Errorf("write solution to %s: %w", flag.Arg(0), err))
 	}
 	fmt.Printf("Shortest solution: %d move(s)\n", len(moves))
+	if *countSolutions {
+		fmt.Printf("Distinct shortest solutions: %s\n", solutionCount)
+	}
 	for i, move := range moves {
 		fmt.Printf("%d. %s", i+1, move)
 		if len(moveNotes[i]) > 0 {

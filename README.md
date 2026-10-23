@@ -267,6 +267,22 @@ Use `-safe` when that assumption may not hold:
 go run . -safe puzzles/example.puzzle
 ```
 
+To count every distinct shortest move sequence, use `-count-solutions`:
+
+```sh
+go run . -count-solutions puzzles/example.puzzle
+```
+
+The solver first finds the shortest solution length, then explores all winning
+move sequences of exactly that length and prints the total. It counts move
+sequences rather than distinct final board states, so two different orders
+which converge on the same position are both included. Identical suffixes are
+memoised rather than explored repeatedly, and the count uses arbitrary-
+precision arithmetic. Only one representative solution is written to the
+puzzle's `solution:` section. Counting can still take considerably longer than
+finding the first solution when a puzzle has a large shortest-depth search
+space. `-count-solutions` may be combined with `-safe`.
+
 ## Puzzle regression tests
 
 Use `-test` to parse every `.puzzle` file in a directory and replay every

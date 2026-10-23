@@ -111,6 +111,25 @@ func TestSearchLowerBoundAccountsForRequiredTurn(t *testing.T) {
 	}
 }
 
+func TestCountAllShortestSolutionOrders(t *testing.T) {
+	p := puzzle(t, "max-moves 2\nboard:\nn*n*\n")
+	moves, count, ok := SolveAndCountShortest(p, SolveOptions{})
+	if !ok || len(moves) != 2 {
+		t.Fatalf("got ok=%v moves=%v", ok, moves)
+	}
+	if got := count.String(); got != "2" {
+		t.Fatalf("got %s shortest solutions, want 2", got)
+	}
+}
+
+func TestCountShortestSolutionsDoesNotIncludeLongerSequences(t *testing.T) {
+	p := puzzle(t, "max-moves 3\nboard:\nn*oo\n")
+	moves, count, ok := SolveAndCountShortest(p, SolveOptions{})
+	if !ok || len(moves) != 1 || count.String() != "1" {
+		t.Fatalf("got ok=%v moves=%v count=%s", ok, moves, count)
+	}
+}
+
 func TestAStarDoesNotMistakeEggOnStarForSolvedPuzzle(t *testing.T) {
 	var p Puzzle
 	p.MaxMoves = 1

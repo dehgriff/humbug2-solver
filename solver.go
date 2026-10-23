@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"sort"
 	"strings"
 )
@@ -87,6 +88,27 @@ func SolveWithOptions(p Puzzle, options SolveOptions) ([]Move, bool) {
 	return solveBFS(p, start, options.Progress)
 }
 
+// SolveAndCountShortest finds one shortest solution and counts every distinct
+// move sequence of that same length. The count is arbitrary precision because
+// puzzles with many independent moves can have more solutions than fit in an
+// integer type.
+func SolveAndCountShortest(p Puzzle, options SolveOptions) ([]Move, *big.Int, bool) {
+	moves, solved := SolveWithOptions(p, options)
+	if !solved {
+		return nil, new(big.Int), false
+	}
+	start := initialState(p)
+	includeWalls := hasGoldBeetle(p)
+	cache := make(map[string][]successor)
+	memo := make(map[solutionCountKey]*big.Int)
+	useHeuristic := !options.Safe || !hasPushingBeetle(p)
+	if options.Progress != nil {
+		options.Progress(SearchProgress{Algorithm: "count", Depth: len(moves)})
+	}
+	count := countSolutionsAtDepth(p, start, searchStateKey(start, includeWalls), len(moves), includeWalls, useHeuristic, cache, memo)
+	return moves, count, true
+}
+
 func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, bool) {
 	nodes := []searchNode{{state: start, parent: -1}}
 	includeWalls := hasGoldBeetle(p)
@@ -168,15 +190,51 @@ type successor struct {
 // greatest number of later bound iterations.
 const maxSuccessorCacheEntries = 20000
 
+type solutionCountKey struct {
+	stateKey  string
+	remaining int
+}
+
+func countSolutionsAtDepth(p Puzzle, state State, stateKey string, remaining int, includeWalls, useHeuristic bool, successorCache map[string][]successor, memo map[solutionCountKey]*big.Int) *big.Int {
+	if remainingBugCount(state) == 0 {
+		if remaining == 0 {
+			return big.NewInt(1)
+		}
+		return new(big.Int)
+	}
+	if remaining == 0 {
+		return new(big.Int)
+	}
+	memoKey := solutionCountKey{stateKey: stateKey, remaining: remaining}
+	if count, ok := memo[memoKey]; ok {
+		return count
+	}
+
+	total := new(big.Int)
+	for _, next := range cachedSuccessors(p, state, stateKey, includeWalls, successorCache) {
+		if useHeuristic && next.h > remaining-1 {
+			continue
+		}
+		total.Add(total, countSolutionsAtDepth(p, next.state, next.key, remaining-1, includeWalls, useHeuristic, successorCache, memo))
+	}
+	memo[memoKey] = total
+	return total
+}
+
+func cachedSuccessors(p Puzzle, state State, stateKey string, includeWalls bool, cache map[string][]successor) []successor {
+	if successors, ok := cache[stateKey]; ok {
+		return successors
+	}
+	successors := generateSuccessors(p, state, includeWalls)
+	if len(cache) < maxSuccessorCacheEntries {
+		cache[stateKey] = successors
+	}
+	return successors
+}
+
 func idaSearch(p Puzzle, state State, stateKey string, depth, bound int, includeWalls bool, bestDepth map[string]int, successorCache map[string][]successor, path *[]Move, expanded *int) bool {
 	*expanded++
-	successors, cached := successorCache[stateKey]
-	if !cached {
-		successors = generateSuccessors(p, state, includeWalls)
-		if len(successorCache) < maxSuccessorCacheEntries {
-			successorCache[stateKey] = successors
-		}
-	}
+	successors := cachedSuccessors(p, state, stateKey, includeWalls, successorCache)
 	for _, next := range successors {
 		if depth+1+next.h > bound {
 			continue
