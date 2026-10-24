@@ -143,7 +143,7 @@ func printBoardStateDecorated(out io.Writer, p Puzzle, state State, heading stri
 	rows, cols := renderedBoardSize(p)
 	fmt.Fprint(out, "   ")
 	for c := 1; c <= cols; c++ {
-		fmt.Fprintf(out, "%-5d ", c)
+		fmt.Fprintf(out, "%-4d ", c)
 	}
 	fmt.Fprintln(out)
 	for r := 0; r < rows; r++ {
@@ -155,7 +155,7 @@ func printBoardStateDecorated(out io.Writer, p Puzzle, state State, heading stri
 				writeSolutionCell(out, p, state, pos, token, nextMove)
 				continue
 			}
-			fmt.Fprintf(out, "%-5s ", token)
+			fmt.Fprintf(out, "%-4s ", token)
 		}
 		fmt.Fprintln(out)
 	}
@@ -207,7 +207,7 @@ func writeSolutionCell(out io.Writer, p Puzzle, state State, pos Pos, token stri
 }
 
 func writeCellPadding(out io.Writer, tokenLength int) {
-	padding := 6 - tokenLength
+	padding := 5 - tokenLength
 	if padding < 1 {
 		padding = 1
 	}
