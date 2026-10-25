@@ -257,7 +257,9 @@ go run . puzzles/example.puzzle
 The solver uses an exact iterative-deepening A* search when its remaining-bug
 lower bound is safe, and prints each lower bound and the number of states
 searched. Eggs on stars and Caterpillars contribute zero to the lower bound
-because they may score as side effects of another bug's move. By default, the
+because they may score as side effects of another bug's move. States containing
+Ants use the conservative one-move-per-group bound because groups can merge and
+later consume several stars in one move. By default, the
 same search is used for pushing Beetles under the simplifying assumption that
 a Beetle move clears at most one goal bug.
 

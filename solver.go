@@ -330,6 +330,7 @@ func hasPushingBeetle(p Puzzle) bool {
 func searchLowerBound(s State) int {
 	bugs := make([]Pos, 0, len(s.Bugs))
 	ignoredGoals := 0
+	hasAnt := false
 	for _, bug := range s.Bugs {
 		if bug.Kind == Puck || bug.Kind == Scorpion || bug.Kind == Caterpillar {
 			if bug.Kind == Caterpillar {
@@ -341,10 +342,19 @@ func searchLowerBound(s State) int {
 			ignoredGoals++
 			continue
 		}
+		if bug.Kind == Ant {
+			hasAnt = true
+		}
 		bugs = append(bugs, bug.Pos)
 	}
 	if len(bugs) == 0 {
 		return 0
+	}
+	// Ant groups can merge and then consume several stars in one later move.
+	// Assigning each current group to its own star can therefore overestimate
+	// the moves required, so retain the safe one-move-per-group bound.
+	if hasAnt {
+		return len(bugs)
 	}
 
 	// Expand star capacities into slots. At most ten bugs can be present in a

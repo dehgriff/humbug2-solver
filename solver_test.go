@@ -111,6 +111,26 @@ func TestSearchLowerBoundAccountsForRequiredTurn(t *testing.T) {
 	}
 }
 
+func TestSearchLowerBoundDoesNotAssignAntGroupsIndependently(t *testing.T) {
+	state := State{Bugs: []Bug{
+		{Kind: Ant, Pos: Pos{0, 0}},
+		{Kind: Ant, Pos: Pos{1, 1}},
+	}}
+	state.Stars[4][5] = 1
+	state.Stars[5][4] = 1
+	if got := searchLowerBound(state); got != 2 {
+		t.Fatalf("ant lower bound = %d, want conservative group count 2", got)
+	}
+}
+
+func TestCountShortestSolutionsWithMergingAnts(t *testing.T) {
+	p := puzzle(t, "max-moves 8\nboard:\naoaO\no.oX\no3oq1o\n...x.o\n...a.l\nwalls:\nwall 1 4 left\nwall 3 1 down\neggs:\negg 3 4\n")
+	moves, count, ok := SolveAndCountShortest(p, SolveOptions{})
+	if !ok || len(moves) != 8 || count.String() != "4" {
+		t.Fatalf("merging-ant solutions: ok=%v moves=%d count=%s", ok, len(moves), count)
+	}
+}
+
 func TestCountAllShortestSolutionOrders(t *testing.T) {
 	p := puzzle(t, "max-moves 2\nboard:\nn*n*\n")
 	moves, count, ok := SolveAndCountShortest(p, SolveOptions{})
