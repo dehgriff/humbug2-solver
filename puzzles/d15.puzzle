@@ -1,5 +1,5 @@
 # A humbug2 puzzle.
-max-moves 40
+max-moves 30
 board:
 .S.O
 OOOOOO
@@ -11,9 +11,9 @@ OOOOOO
 eggs:
 egg 6 4
 analysis:
-version 2
+version 3
 quality 69
-difficulty 5.3
+difficulty 6.7
 moves 12
 objects 4
 platforms 29
@@ -25,6 +25,12 @@ maximum-legal-moves 8
 scoring-moves 4
 setup-moves 8
 interaction-moves 3
+sequencing-load 57
+goal-objects 4
+moves-per-goal-object 3.00
+moves-before-first-score 6
+longest-setup-run 6
+mover-type-switches 9
 mechanics-used 4/4
 mechanics beetle-pushing,distance-adjustment,egg-hatching,trampoline-use
 eggs-hatched 1
@@ -48,9 +54,10 @@ misleading-steps 11
 average-optimal-moves 1.33
 total-detour-penalty 84
 maximum-detour-penalty 3
-landscape-states-searched 1743616
+landscape-states-searched 1743526
+analysis-timed-out false
 quality-components tightness=62 interactions=25 ability-use=100 manageability=100 setup-balance=93
-difficulty-components depth=33 choices=56 objects=33 setup=67 mechanics=80 scorpions=0 decision-landscape=59
+difficulty-components depth=33 choices=56 objects=33 setup=67 mechanics=80 scorpions=0 decision-landscape=59 sequencing=57
 solution:
 1 p u
 2 t u

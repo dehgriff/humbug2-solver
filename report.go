@@ -18,6 +18,7 @@ type storedAnalysis struct {
 	Version, Quality, Moves, Tightness, InteractionMoves int
 	DecisionLandscape, Optimal, Detours, DeadEnds        int
 	Unresolved, ScorpionLoad                             int
+	SequencingLoad                                       int
 	Difficulty                                           float64
 	TimedOut                                             bool
 	ParseError                                           error
@@ -34,10 +35,10 @@ type reportRow struct {
 }
 
 type collectionSummary struct {
-	Files, Valid, Solved, Version2, MissingSolutions int
-	MissingAnalysis, StaleAnalysis, BadAnalysis      int
-	Invalid                                          int
-	TimedOut, UnresolvedHeavy, LowQuality            int
+	Files, Valid, Solved, CurrentAnalysis, MissingSolutions int
+	MissingAnalysis, StaleAnalysis, BadAnalysis             int
+	Invalid                                                 int
+	TimedOut, UnresolvedHeavy, LowQuality                   int
 }
 
 func reportPuzzleDirectory(dir string, out io.Writer) error {
@@ -101,7 +102,7 @@ func reportPuzzleDirectoryWithCSV(dir string, out io.Writer, csvPath string) err
 			row.Flags = append(row.Flags, fmt.Sprintf("V%d", row.Analysis.Version))
 			summary.StaleAnalysis++
 		} else {
-			summary.Version2++
+			summary.CurrentAnalysis++
 		}
 		if row.Analysis.TimedOut {
 			row.Flags = append(row.Flags, "TIMEOUT")
@@ -127,7 +128,7 @@ func reportPuzzleDirectoryWithCSV(dir string, out io.Writer, csvPath string) err
 
 	printCollectionTable(out, rows)
 	fmt.Fprintf(out, "\nSummary: %d puzzle(s), %d valid, %d solved, %d with version %d analysis\n",
-		summary.Files, summary.Valid, summary.Solved, summary.Version2, analysisVersion)
+		summary.Files, summary.Valid, summary.Solved, summary.CurrentAnalysis, analysisVersion)
 	fmt.Fprintf(out, "Attention: %d missing solution, %d missing analysis, %d stale analysis, %d malformed analysis, %d invalid, %d timed out, %d heavily unresolved, %d low quality\n",
 		summary.MissingSolutions, summary.MissingAnalysis, summary.StaleAnalysis, summary.BadAnalysis, summary.Invalid, summary.TimedOut, summary.UnresolvedHeavy, summary.LowQuality)
 	printCollectionExtremes(out, rows)
@@ -166,7 +167,7 @@ func writeCollectionCSV(path string, rows []reportRow) error {
 	header := []string{
 		"puzzle", "valid", "has_solution", "has_analysis", "analysis_version",
 		"quality", "difficulty", "moves", "tightness_percent", "interaction_moves",
-		"decision_landscape", "optimal_moves", "detour_moves", "dead_end_moves",
+		"sequencing_load", "decision_landscape", "optimal_moves", "detour_moves", "dead_end_moves",
 		"unresolved_moves", "scorpion_load", "analysis_timed_out", "flags", "error",
 	}
 	if err := w.Write(header); err != nil {
@@ -198,7 +199,7 @@ func collectionCSVRecord(row reportRow) []string {
 		strconv.FormatBool(valid),
 		strconv.FormatBool(valid && row.Puzzle.HasSolution),
 		strconv.FormatBool(valid && row.HasAnalysis),
-		"", "", "", "", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "", "", "", "", "",
 		strings.Join(row.Flags, ";"),
 		"",
 	}
@@ -219,13 +220,14 @@ func collectionCSVRecord(row reportRow) []string {
 	record[7] = strconv.Itoa(a.Moves)
 	record[8] = strconv.Itoa(a.Tightness)
 	record[9] = strconv.Itoa(a.InteractionMoves)
-	record[10] = strconv.Itoa(a.DecisionLandscape)
-	record[11] = strconv.Itoa(a.Optimal)
-	record[12] = strconv.Itoa(a.Detours)
-	record[13] = strconv.Itoa(a.DeadEnds)
-	record[14] = strconv.Itoa(a.Unresolved)
-	record[15] = strconv.Itoa(a.ScorpionLoad)
-	record[16] = strconv.FormatBool(a.TimedOut)
+	record[10] = strconv.Itoa(a.SequencingLoad)
+	record[11] = strconv.Itoa(a.DecisionLandscape)
+	record[12] = strconv.Itoa(a.Optimal)
+	record[13] = strconv.Itoa(a.Detours)
+	record[14] = strconv.Itoa(a.DeadEnds)
+	record[15] = strconv.Itoa(a.Unresolved)
+	record[16] = strconv.Itoa(a.ScorpionLoad)
+	record[17] = strconv.FormatBool(a.TimedOut)
 	if a.ParseError != nil {
 		record[len(record)-1] = a.ParseError.Error()
 	}
@@ -283,6 +285,7 @@ func parseStoredAnalysis(lines []string) storedAnalysis {
 	parseInt("dead-end-moves", &a.DeadEnds)
 	parseInt("unresolved-moves", &a.Unresolved)
 	parseInt("scorpion-load", &a.ScorpionLoad)
+	parseInt("sequencing-load", &a.SequencingLoad)
 	if value, exists := values["difficulty"]; exists {
 		n, err := strconv.ParseFloat(value, 64)
 		if err != nil {
@@ -307,10 +310,10 @@ func parseStoredAnalysis(lines []string) storedAnalysis {
 
 func printCollectionTable(out io.Writer, rows []reportRow) {
 	w := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "PUZZLE\tVER\tQ\tDIFF\tMOVES\tTIGHT%\tINT-MV\tLAND\tOPT\tDET\tDEAD\tUNR\tSCORP\tFLAGS")
+	fmt.Fprintln(w, "PUZZLE\tVER\tQ\tDIFF\tMOVES\tTIGHT%\tINT-MV\tSEQ\tLAND\tOPT\tDET\tDEAD\tUNR\tSCORP\tFLAGS")
 	for _, row := range rows {
 		if row.Invalid != nil {
-			fmt.Fprintf(w, "%s\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t%s\n", row.Name, strings.Join(row.Flags, ","))
+			fmt.Fprintf(w, "%s\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t%s\n", row.Name, strings.Join(row.Flags, ","))
 			continue
 		}
 		if !row.HasAnalysis {
@@ -318,13 +321,13 @@ func printCollectionTable(out io.Writer, rows []reportRow) {
 			if row.Puzzle.HasSolution {
 				moves = strconv.Itoa(len(row.Puzzle.Solution))
 			}
-			fmt.Fprintf(w, "%s\t-\t-\t-\t%s\t-\t-\t-\t-\t-\t-\t-\t-\t%s\n", row.Name, moves, strings.Join(row.Flags, ","))
+			fmt.Fprintf(w, "%s\t-\t-\t-\t%s\t-\t-\t-\t-\t-\t-\t-\t-\t-\t%s\n", row.Name, moves, strings.Join(row.Flags, ","))
 			continue
 		}
 		a := row.Analysis
-		fmt.Fprintf(w, "%s\t%d\t%d\t%.1f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
+		fmt.Fprintf(w, "%s\t%d\t%d\t%.1f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
 			row.Name, a.Version, a.Quality, a.Difficulty, a.Moves, a.Tightness, a.InteractionMoves,
-			a.DecisionLandscape, a.Optimal, a.Detours, a.DeadEnds, a.Unresolved, a.ScorpionLoad, strings.Join(row.Flags, ","))
+			a.SequencingLoad, a.DecisionLandscape, a.Optimal, a.Detours, a.DeadEnds, a.Unresolved, a.ScorpionLoad, strings.Join(row.Flags, ","))
 	}
 	w.Flush()
 }
@@ -377,6 +380,7 @@ func printSimilarProfiles(out io.Writer, rows []reportRow) {
 				math.Abs(a.Analysis.Difficulty-b.Analysis.Difficulty) <= .1 &&
 				abs(a.Analysis.Moves-b.Analysis.Moves) <= 1 &&
 				abs(a.Analysis.Tightness-b.Analysis.Tightness) <= 2 &&
+				abs(a.Analysis.SequencingLoad-b.Analysis.SequencingLoad) <= 3 &&
 				abs(a.Analysis.DecisionLandscape-b.Analysis.DecisionLandscape) <= 3 &&
 				abs(a.Analysis.ScorpionLoad-b.Analysis.ScorpionLoad) <= 3 {
 				pairs = append(pairs, pair{a.Name, b.Name})

@@ -386,7 +386,7 @@ go run . -score puzzles/example.puzzle
 ```
 
 This mode validates and replays the embedded solution, prints the headline
-scores, and replaces the stored analysis. Version 2 performs bounded searches
+scores, and replaces the stored analysis. Version 2 and later perform bounded searches
 from every safe alternative move along the solution. It classifies an
 alternative as optimal when it preserves the shortest remaining solution,
 as a detour when it remains solvable but needs extra moves, or as a dead end
@@ -424,7 +424,7 @@ which is not represented by the number of moves available to the player.
 
 ```text
 analysis:
-version 2
+version 3
 quality 84
 difficulty 5.0
 moves 13
@@ -448,7 +448,7 @@ go run . -report puzzles
 ```
 
 The report is ordered by relative filename and includes quality, difficulty,
-move count, tightness, interactions, decision-landscape counts and scorpion
+move count, tightness, interactions, sequencing load, decision-landscape counts and scorpion
 load. It flags missing solutions or analysis, stale analysis versions, invalid
 files, timeouts, heavily unresolved analysis, low quality, and difficulty
 outliers. It also reports metric ranges and potentially similar puzzle

@@ -1,5 +1,5 @@
 # A humbug2 puzzle.
-max-moves 26
+max-moves 30
 board:
 **o
 ooodoo
@@ -9,9 +9,9 @@ o.P
 walls:
 wall 2 1 right
 analysis:
-version 2
+version 3
 quality 67
-difficulty 5.2
+difficulty 6.5
 moves 17
 objects 4
 platforms 19
@@ -23,6 +23,12 @@ maximum-legal-moves 6
 scoring-moves 4
 setup-moves 13
 interaction-moves 1
+sequencing-load 51
+goal-objects 4
+moves-per-goal-object 4.25
+moves-before-first-score 3
+longest-setup-run 5
+mover-type-switches 9
 mechanics-used 3/4
 mechanics distance-adjustment,trampoline-use,wall-special
 eggs-hatched 0
@@ -49,7 +55,7 @@ maximum-detour-penalty 2
 landscape-states-searched 2000000
 analysis-timed-out false
 quality-components tightness=89 interactions=6 ability-use=75 manageability=100 setup-balance=84
-difficulty-components depth=52 choices=49 objects=33 setup=76 mechanics=60 scorpions=0 decision-landscape=49
+difficulty-components depth=52 choices=49 objects=33 setup=76 mechanics=60 scorpions=0 decision-landscape=49 sequencing=51
 solution:
 1 d d
 2 t u

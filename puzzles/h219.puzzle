@@ -1,14 +1,14 @@
 # A humbug2 puzzle
-max-moves 20
+max-moves 30
 board:
 ssls
 .xx
 .OX@
 .**
 analysis:
-version 2
+version 3
 quality 75
-difficulty 4.3
+difficulty 5.3
 moves 9
 objects 4
 platforms 11
@@ -20,6 +20,12 @@ maximum-legal-moves 6
 scoring-moves 4
 setup-moves 5
 interaction-moves 0
+sequencing-load 39
+goal-objects 4
+moves-per-goal-object 2.25
+moves-before-first-score 1
+longest-setup-run 4
+mover-type-switches 6
 mechanics-used 2/2
 mechanics distance-adjustment,trampoline-use
 eggs-hatched 0
@@ -43,10 +49,10 @@ misleading-steps 8
 average-optimal-moves 1.33
 total-detour-penalty 22
 maximum-detour-penalty 5
-landscape-states-searched 2489
+landscape-states-searched 4099
 analysis-timed-out false
 quality-components tightness=100 interactions=0 ability-use=100 manageability=100 setup-balance=96
-difficulty-components depth=22 choices=35 objects=33 setup=56 mechanics=40 scorpions=0 decision-landscape=60
+difficulty-components depth=22 choices=35 objects=33 setup=56 mechanics=40 scorpions=0 decision-landscape=60 sequencing=39
 solution:
 1 s 1 2 d
 2 s 3 2 r

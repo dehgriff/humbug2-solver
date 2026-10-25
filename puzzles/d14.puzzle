@@ -1,5 +1,5 @@
 # A humbug2 puzzle.
-max-moves 20
+max-moves 30
 board:
 !OOO
 !OOS
@@ -11,9 +11,9 @@ board:
 walls:
 wall 3 1 right
 analysis:
-version 2
+version 3
 quality 70
-difficulty 5.7
+difficulty 7.9
 moves 20
 objects 3
 platforms 15
@@ -25,6 +25,12 @@ maximum-legal-moves 6
 scoring-moves 3
 setup-moves 17
 interaction-moves 0
+sequencing-load 82
+goal-objects 3
+moves-per-goal-object 6.67
+moves-before-first-score 14
+longest-setup-run 14
+mover-type-switches 14
 mechanics-used 2/2
 mechanics distance-adjustment,trampoline-use
 eggs-hatched 0
@@ -36,22 +42,22 @@ scorpion-steps 0
 scorpion-turns 0
 multi-scorpion-turns 0
 scorpion-direction-changes 0
-decision-landscape 66
+decision-landscape 70
 optimal-moves 22
-detour-moves 0
-dead-end-moves 46
+detour-moves 30
+dead-end-moves 16
 unresolved-moves 0
 branching-steps 18
 forced-choice-steps 16
 multiple-optimal-steps 2
 misleading-steps 17
 average-optimal-moves 1.10
-total-detour-penalty 0
-maximum-detour-penalty 0
-landscape-states-searched 37723
+total-detour-penalty 78
+maximum-detour-penalty 7
+landscape-states-searched 89134
 analysis-timed-out false
 quality-components tightness=93 interactions=0 ability-use=100 manageability=100 setup-balance=75
-difficulty-components depth=63 choices=34 objects=22 setup=85 mechanics=40 scorpions=0 decision-landscape=66
+difficulty-components depth=63 choices=34 objects=22 setup=85 mechanics=40 scorpions=0 decision-landscape=70 sequencing=82
 solution:
 1 p u
 2 l u

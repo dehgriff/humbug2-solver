@@ -1,14 +1,14 @@
 # A humbug2 puzzle.
-max-moves 20
+max-moves 30
 board:
 ssls
 .xx
 .OX@
 ..**
 analysis:
-version 2
+version 3
 quality 75
-difficulty 4.3
+difficulty 5.2
 moves 11
 objects 4
 platforms 11
@@ -20,6 +20,12 @@ maximum-legal-moves 5
 scoring-moves 4
 setup-moves 7
 interaction-moves 0
+sequencing-load 36
+goal-objects 4
+moves-per-goal-object 2.75
+moves-before-first-score 1
+longest-setup-run 3
+mover-type-switches 4
 mechanics-used 2/2
 mechanics distance-adjustment,trampoline-use
 eggs-hatched 0
@@ -31,7 +37,7 @@ scorpion-steps 0
 scorpion-turns 0
 multi-scorpion-turns 0
 scorpion-direction-changes 0
-decision-landscape 54
+decision-landscape 55
 optimal-moves 14
 detour-moves 8
 dead-end-moves 8
@@ -43,10 +49,10 @@ misleading-steps 9
 average-optimal-moves 1.27
 total-detour-penalty 14
 maximum-detour-penalty 2
-landscape-states-searched 1882
+landscape-states-searched 3022
 analysis-timed-out false
 quality-components tightness=100 interactions=0 ability-use=100 manageability=100 setup-balance=96
-difficulty-components depth=30 choices=25 objects=33 setup=64 mechanics=40 scorpions=0 decision-landscape=54
+difficulty-components depth=30 choices=25 objects=33 setup=64 mechanics=40 scorpions=0 decision-landscape=55 sequencing=36
 solution:
 1 s 1 2 d
 2 s 3 2 r # spider merged with star at (3,4)

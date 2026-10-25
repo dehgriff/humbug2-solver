@@ -1,5 +1,5 @@
 # A humbug2 puzzle
-max-moves 40
+max-moves 30
 board:
 poosO
 ooxo*
@@ -10,9 +10,9 @@ walls:
 eggs:
 egg 3 4
 analysis:
-version 2
+version 3
 quality 70
-difficulty 5.9
+difficulty 7.6
 moves 20
 objects 3
 platforms 19
@@ -24,6 +24,12 @@ maximum-legal-moves 5
 scoring-moves 3
 setup-moves 17
 interaction-moves 1
+sequencing-load 71
+goal-objects 3
+moves-per-goal-object 6.67
+moves-before-first-score 8
+longest-setup-run 9
+mover-type-switches 13
 mechanics-used 3/3
 mechanics distance-adjustment,egg-hatching,trampoline-use
 eggs-hatched 1
@@ -35,21 +41,22 @@ scorpion-steps 0
 scorpion-turns 0
 multi-scorpion-turns 0
 scorpion-direction-changes 0
-decision-landscape 67
+decision-landscape 65
 optimal-moves 23
-detour-moves 32
-dead-end-moves 11
+detour-moves 31
+dead-end-moves 12
 unresolved-moves 0
 branching-steps 19
 forced-choice-steps 16
 multiple-optimal-steps 3
 misleading-steps 18
 average-optimal-moves 1.15
-total-detour-penalty 82
-maximum-detour-penalty 14
-landscape-states-searched 33482
+total-detour-penalty 68
+maximum-detour-penalty 5
+landscape-states-searched 31573
+analysis-timed-out false
 quality-components tightness=89 interactions=5 ability-use=100 manageability=100 setup-balance=75
-difficulty-components depth=63 choices=33 objects=22 setup=85 mechanics=60 scorpions=0 decision-landscape=67
+difficulty-components depth=63 choices=33 objects=22 setup=85 mechanics=60 scorpions=0 decision-landscape=65 sequencing=71
 solution:
 1 p r
 2 p d

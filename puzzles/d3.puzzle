@@ -1,5 +1,5 @@
 # A humbug2 puzzle
-max-moves 26
+max-moves 30
 board:
 .....*
 ..*pol
@@ -7,9 +7,9 @@ board:
 ...bon*
 ...*
 analysis:
-version 2
+version 3
 quality 71
-difficulty 4.4
+difficulty 5.0
 moves 6
 objects 4
 platforms 12
@@ -21,6 +21,12 @@ maximum-legal-moves 8
 scoring-moves 4
 setup-moves 2
 interaction-moves 0
+sequencing-load 24
+goal-objects 4
+moves-per-goal-object 1.50
+moves-before-first-score 0
+longest-setup-run 1
+mover-type-switches 4
 mechanics-used 2/2
 mechanics distance-adjustment,flight
 eggs-hatched 0
@@ -44,10 +50,10 @@ misleading-steps 4
 average-optimal-moves 1.00
 total-detour-penalty 34
 maximum-detour-penalty 12
-landscape-states-searched 20708
+landscape-states-searched 23632
 analysis-timed-out false
 quality-components tightness=100 interactions=0 ability-use=100 manageability=90 setup-balance=73
-difficulty-components depth=11 choices=45 objects=33 setup=33 mechanics=40 scorpions=0 decision-landscape=75
+difficulty-components depth=11 choices=45 objects=33 setup=33 mechanics=40 scorpions=0 decision-landscape=75 sequencing=24
 solution:
 1 n r # snail merged with star at (4,7)
 2 b r

@@ -1,5 +1,5 @@
 # A humbug2 puzzle
-max-moves 40
+max-moves 30
 board:
 OO
 ox
@@ -7,9 +7,9 @@ tn
 xs..f
 oo2o2
 analysis:
-version 2
+version 3
 quality 71
-difficulty 5.5
+difficulty 6.9
 moves 16
 objects 4
 platforms 14
@@ -21,6 +21,12 @@ maximum-legal-moves 7
 scoring-moves 4
 setup-moves 12
 interaction-moves 1
+sequencing-load 57
+goal-objects 4
+moves-per-goal-object 4.00
+moves-before-first-score 6
+longest-setup-run 6
+mover-type-switches 10
 mechanics-used 3/3
 mechanics beetle-pushing,flight,trampoline-use
 eggs-hatched 0
@@ -47,7 +53,7 @@ maximum-detour-penalty 3
 landscape-states-searched 629904
 analysis-timed-out false
 quality-components tightness=86 interactions=6 ability-use=100 manageability=100 setup-balance=85
-difficulty-components depth=48 choices=43 objects=33 setup=75 mechanics=60 scorpions=0 decision-landscape=62
+difficulty-components depth=48 choices=43 objects=33 setup=75 mechanics=60 scorpions=0 decision-landscape=62 sequencing=57
 solution:
 1 t d
 2 n l

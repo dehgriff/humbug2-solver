@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const analysisVersion = 2
+const analysisVersion = 3
 
 // PuzzleAnalysis combines a replay of the supplied solution with bounded
 // searches of the alternative moves encountered along it. It never mutates
@@ -22,11 +22,13 @@ type PuzzleAnalysis struct {
 	Difficulty                                                                float64
 	DifficultyDepth, DifficultyChoices, DifficultyObjects                     int
 	DifficultySetup, DifficultyMechanics, DifficultyScorpions                 int
-	DifficultyDecisionLandscape                                               int
+	DifficultyDecisionLandscape, DifficultySequencing                         int
 	Moves, Objects, Platforms, VisitedPlatforms                               int
 	OpeningLegal, MaximumLegal                                                int
 	AverageLegal                                                              float64
 	ScoringMoves, SetupMoves, InteractionMoves                                int
+	GoalObjects, MovesBeforeFirstScore, LongestSetupRun, MoverTypeSwitches    int
+	AverageMovesPerGoal                                                       float64
 	MechanicsUsed, MechanicOpportunities                                      int
 	EggsHatched, WallsDestroyed                                               int
 	PeakActiveScorpions, ScorpionSteps, ScorpionTurns, MultiScorpionTurns     int
@@ -54,11 +56,21 @@ func AnalyzePuzzle(p Puzzle, moves []Move) (PuzzleAnalysis, error) {
 	used := make(map[string]bool)
 	visited := make(map[Pos]bool)
 	state := initialState(p)
+	a.GoalObjects = remainingBugCount(state)
 	states := []State{state}
 	markOccupiedPlatforms(p, state, visited)
 	legalTotal := 0
 	activeScorpionTotal := 0
+	currentSetupRun := 0
+	firstScoreSeen := false
+	var previousMoverType BugType
+	hasPreviousMover := false
 	for step, move := range moves {
+		if hasPreviousMover && move.Kind != previousMoverType {
+			a.MoverTypeSwitches++
+		}
+		previousMoverType = move.Kind
+		hasPreviousMover = true
 		legal := countSafeMoves(p, state)
 		if step == 0 {
 			a.OpeningLegal = legal
@@ -98,8 +110,17 @@ func AnalyzePuzzle(p Puzzle, moves []Move) (PuzzleAnalysis, error) {
 		starsBefore, starsAfter := starCount(before.Stars), starCount(state.Stars)
 		if starsAfter < starsBefore {
 			a.ScoringMoves++
+			if !firstScoreSeen {
+				a.MovesBeforeFirstScore = step
+				firstScoreSeen = true
+			}
+			currentSetupRun = 0
 		} else {
 			a.SetupMoves++
+			currentSetupRun++
+			if currentSetupRun > a.LongestSetupRun {
+				a.LongestSetupRun = currentSetupRun
+			}
 		}
 		eggs := eggCount(before.Bugs) - eggCount(state.Bugs)
 		if eggs > 0 {
@@ -120,6 +141,9 @@ func AnalyzePuzzle(p Puzzle, moves []Move) (PuzzleAnalysis, error) {
 	if remainingBugCount(state) != 0 {
 		return PuzzleAnalysis{}, fmt.Errorf("solution ends after %d move(s) but the puzzle is not solved", len(moves))
 	}
+	if !firstScoreSeen {
+		a.MovesBeforeFirstScore = a.Moves
+	}
 
 	a.VisitedPlatforms = len(visited)
 	if a.Platforms > 0 {
@@ -132,6 +156,9 @@ func AnalyzePuzzle(p Puzzle, moves []Move) (PuzzleAnalysis, error) {
 		a.SetupBalance = setupBalance(float64(a.SetupMoves) / float64(a.Moves))
 	} else {
 		a.SetupBalance = 40
+	}
+	if a.GoalObjects > 0 {
+		a.AverageMovesPerGoal = float64(a.Moves) / float64(a.GoalObjects)
 	}
 	for mechanic := range used {
 		if opportunities[mechanic] {
@@ -156,6 +183,17 @@ func AnalyzePuzzle(p Puzzle, moves []Move) (PuzzleAnalysis, error) {
 		a.DifficultySetup = int(math.Round(float64(a.SetupMoves) / float64(a.Moves) * 100))
 	}
 	a.DifficultyMechanics = int(math.Round(clamp(float64(a.MechanicsUsed)/5*100, 0, 100)))
+	if a.Moves > 0 {
+		setupLoad := float64(a.DifficultySetup)
+		delayedScoring := float64(a.MovesBeforeFirstScore) / float64(a.Moves) * 100
+		longestSetup := float64(a.LongestSetupRun) / float64(a.Moves) * 100
+		moveLoad := clamp((a.AverageMovesPerGoal-1)/5*100, 0, 100)
+		switchLoad := 0.0
+		if a.Moves > 1 {
+			switchLoad = float64(a.MoverTypeSwitches) / float64(a.Moves-1) * 100
+		}
+		a.DifficultySequencing = int(math.Round(clamp(.25*setupLoad+.25*delayedScoring+.25*moveLoad+.15*switchLoad+.10*longestSetup, 0, 100)))
+	}
 	if a.PeakActiveScorpions > 0 && a.Moves > 0 {
 		peakLoad := clamp(float64(a.PeakActiveScorpions)/4*100, 0, 100)
 		averageLoad := clamp(a.AverageActiveScorpions/2*100, 0, 100)
@@ -173,10 +211,13 @@ func AnalyzePuzzle(p Puzzle, moves []Move) (PuzzleAnalysis, error) {
 	// ordinary branching. Add up to two difficulty points without reducing
 	// the score of otherwise identical puzzles that contain no scorpions.
 	rawDifficulty += .20 * float64(a.DifficultyScorpions)
-	// The decision landscape is the strongest v2 signal: it measures whether
+	// The decision landscape is the strongest branch-analysis signal: it measures whether
 	// plausible alternatives preserve an optimal solution, cause a detour, or
 	// become dead ends within the puzzle's move allowance.
 	rawDifficulty += .35 * float64(a.DifficultyDecisionLandscape)
+	// Long sequences of non-scoring repositioning and repeated coordination
+	// between bug types are an additional human planning burden.
+	rawDifficulty += .25 * float64(a.DifficultySequencing)
 	a.Difficulty = math.Round(clamp(rawDifficulty/10, 1, 10)*10) / 10
 	return a, nil
 }
@@ -721,6 +762,8 @@ func (a PuzzleAnalysis) lines() []string {
 		fmt.Sprintf("visited-platforms %d", a.VisitedPlatforms), fmt.Sprintf("tightness %d", a.Tightness),
 		fmt.Sprintf("average-legal-moves %.2f", a.AverageLegal), fmt.Sprintf("opening-legal-moves %d", a.OpeningLegal), fmt.Sprintf("maximum-legal-moves %d", a.MaximumLegal),
 		fmt.Sprintf("scoring-moves %d", a.ScoringMoves), fmt.Sprintf("setup-moves %d", a.SetupMoves), fmt.Sprintf("interaction-moves %d", a.InteractionMoves),
+		fmt.Sprintf("sequencing-load %d", a.DifficultySequencing), fmt.Sprintf("goal-objects %d", a.GoalObjects), fmt.Sprintf("moves-per-goal-object %.2f", a.AverageMovesPerGoal),
+		fmt.Sprintf("moves-before-first-score %d", a.MovesBeforeFirstScore), fmt.Sprintf("longest-setup-run %d", a.LongestSetupRun), fmt.Sprintf("mover-type-switches %d", a.MoverTypeSwitches),
 		fmt.Sprintf("mechanics-used %d/%d", a.MechanicsUsed, a.MechanicOpportunities), fmt.Sprintf("mechanics %s", mechanics),
 		fmt.Sprintf("eggs-hatched %d", a.EggsHatched), fmt.Sprintf("walls-destroyed %d", a.WallsDestroyed),
 		fmt.Sprintf("scorpion-load %d", a.DifficultyScorpions), fmt.Sprintf("peak-active-scorpions %d", a.PeakActiveScorpions), fmt.Sprintf("average-active-scorpions %.2f", a.AverageActiveScorpions),
@@ -730,7 +773,7 @@ func (a PuzzleAnalysis) lines() []string {
 		fmt.Sprintf("average-optimal-moves %.2f", a.AverageOptimalMoves), fmt.Sprintf("total-detour-penalty %d", a.DetourPenalty), fmt.Sprintf("maximum-detour-penalty %d", a.MaximumDetourPenalty), fmt.Sprintf("landscape-states-searched %d", a.LandscapeStates),
 		fmt.Sprintf("analysis-timed-out %t", a.AnalysisTimedOut),
 		fmt.Sprintf("quality-components tightness=%d interactions=%d ability-use=%d manageability=%d setup-balance=%d", a.Tightness, a.Interactions, a.AbilityUse, a.Manageability, a.SetupBalance),
-		fmt.Sprintf("difficulty-components depth=%d choices=%d objects=%d setup=%d mechanics=%d scorpions=%d decision-landscape=%d", a.DifficultyDepth, a.DifficultyChoices, a.DifficultyObjects, a.DifficultySetup, a.DifficultyMechanics, a.DifficultyScorpions, a.DifficultyDecisionLandscape),
+		fmt.Sprintf("difficulty-components depth=%d choices=%d objects=%d setup=%d mechanics=%d scorpions=%d decision-landscape=%d sequencing=%d", a.DifficultyDepth, a.DifficultyChoices, a.DifficultyObjects, a.DifficultySetup, a.DifficultyMechanics, a.DifficultyScorpions, a.DifficultyDecisionLandscape, a.DifficultySequencing),
 	}
 }
 
@@ -746,6 +789,7 @@ func printPuzzleAnalysis(out io.Writer, a PuzzleAnalysis) {
 	if a.PeakActiveScorpions > 0 {
 		fmt.Fprintf(out, "Scorpion load: %d/100; peak %d active, %.2f active on average, %d autonomous step(s)\n", a.DifficultyScorpions, a.PeakActiveScorpions, a.AverageActiveScorpions, a.ScorpionSteps)
 	}
+	fmt.Fprintf(out, "Sequencing load: %d/100; %d setup move(s), first score after %d move(s), %.2f moves per goal object\n", a.DifficultySequencing, a.SetupMoves, a.MovesBeforeFirstScore, a.AverageMovesPerGoal)
 	fmt.Fprintf(out, "Decision landscape: %d/100; %d optimal, %d detour, %d dead-end, %d unresolved move(s); %d state(s) searched\n", a.DifficultyDecisionLandscape, a.OptimalMoves, a.DetourMoves, a.DeadEndMoves, a.UnresolvedMoves, a.LandscapeStates)
 	if a.AnalysisTimedOut {
 		fmt.Fprintf(out, "Decision analysis stopped after the %s time limit; unresolved moves were not treated as dead ends.\n", analysisTimeLimit)

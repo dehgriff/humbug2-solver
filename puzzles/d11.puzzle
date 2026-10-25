@@ -1,5 +1,5 @@
 # A humbug2 puzzle.
-max-moves 40
+max-moves 30
 board:
 .
 .
@@ -9,9 +9,9 @@ board:
 ......l
 ....oooo**
 analysis:
-version 2
+version 3
 quality 70
-difficulty 4.7
+difficulty 5.6
 moves 13
 objects 4
 platforms 14
@@ -23,6 +23,12 @@ maximum-legal-moves 8
 scoring-moves 4
 setup-moves 9
 interaction-moves 0
+sequencing-load 38
+goal-objects 4
+moves-per-goal-object 3.25
+moves-before-first-score 1
+longest-setup-run 5
+mover-type-switches 3
 mechanics-used 3/3
 mechanics distance-adjustment,flight,trampoline-use
 eggs-hatched 0
@@ -49,7 +55,7 @@ maximum-detour-penalty 2
 landscape-states-searched 61574
 analysis-timed-out false
 quality-components tightness=86 interactions=0 ability-use=100 manageability=100 setup-balance=91
-difficulty-components depth=37 choices=59 objects=33 setup=69 mechanics=60 scorpions=0 decision-landscape=44
+difficulty-components depth=37 choices=59 objects=33 setup=69 mechanics=60 scorpions=0 decision-landscape=44 sequencing=38
 solution:
 1 g u
 2 g l # grasshopper merged with star at (3,4)

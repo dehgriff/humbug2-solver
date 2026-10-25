@@ -228,7 +228,7 @@ func TestInitialScorpionsFaceAdjacentTargetBugs(t *testing.T) {
 }
 
 func TestD33FirstMoveScorpionOrderAfterInitialFacing(t *testing.T) {
-	p := puzzle(t, "max-moves 40\nboard:\noooo\nogqqo\noqooo\nooooo\n1oooo\n")
+	p := puzzle(t, "max-moves 30\nboard:\noooo\nogqqo\noqooo\nooooo\n1oooo\n")
 	state := initialState(p)
 	grasshopper := bugAt(state.Bugs, Pos{1, 1})
 	outcome := applyMoveDetailed(p, state, grasshopper, Left)

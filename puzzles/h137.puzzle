@@ -1,5 +1,5 @@
 # A humbug2 puzzle.
-max-moves 12
+max-moves 30
 board:
 .loo
 .ooo
@@ -9,9 +9,9 @@ wall 1 3 right
 wall 2 3 down
 wall 2 1 right
 analysis:
-version 2
+version 3
 quality 61
-difficulty 3.2
+difficulty 4.3
 moves 5
 objects 2
 platforms 10
@@ -23,6 +23,12 @@ maximum-legal-moves 4
 scoring-moves 2
 setup-moves 3
 interaction-moves 0
+sequencing-load 44
+goal-objects 2
+moves-per-goal-object 2.50
+moves-before-first-score 2
+longest-setup-run 2
+mover-type-switches 2
 mechanics-used 1/2
 mechanics wall-special
 eggs-hatched 0
@@ -46,9 +52,10 @@ misleading-steps 3
 average-optimal-moves 1.20
 total-detour-penalty 4
 maximum-detour-penalty 2
-landscape-states-searched 356
+landscape-states-searched 1364
+analysis-timed-out false
 quality-components tightness=100 interactions=0 ability-use=50 manageability=75 setup-balance=100
-difficulty-components depth=7 choices=23 objects=11 setup=60 mechanics=20 scorpions=0 decision-landscape=55
+difficulty-components depth=7 choices=23 objects=11 setup=60 mechanics=20 scorpions=0 decision-landscape=55 sequencing=44
 solution:
 1 c u
 2 c l

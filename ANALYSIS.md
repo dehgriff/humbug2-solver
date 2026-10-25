@@ -1,7 +1,7 @@
 # Puzzle analysis fields and scoring
 
 The `analysis:` section is produced by replaying the stored solution and, for
-version 2, searching the safe alternative moves encountered along it. All
+version 2 and later, searching the safe alternative moves encountered along it. All
 component scores are percentages from 0 to 100 unless stated otherwise.
 `clamp(x)` below means limiting a value to 0–100.
 
@@ -23,7 +23,7 @@ stored solution. They are not counts of globally distinct move strings.
 
 | Go field | Stored name | Meaning and score effect |
 | --- | --- | --- |
-| `Difficulty` | `difficulty` | Overall difficulty out of 10, rounded to one decimal and clamped to 1–10. Formula: `(0.25 Depth + 0.10 Choices + 0.10 Objects + 0.10 Setup + 0.10 Mechanics + 0.20 Scorpions + 0.35 DecisionLandscape) / 10`. The specialised scorpion and landscape terms are additive, so the theoretical total can exceed 10 before clamping. |
+| `Difficulty` | `difficulty` | Overall difficulty out of 10, rounded to one decimal and clamped to 1–10. Formula: `(0.25 Depth + 0.10 Choices + 0.10 Objects + 0.10 Setup + 0.10 Mechanics + 0.20 Scorpions + 0.35 DecisionLandscape + 0.25 Sequencing) / 10`. The specialised terms are additive, so the theoretical total can exceed 10 before clamping. |
 | `DifficultyDepth` | `depth` in `difficulty-components` | `clamp((Moves - 3) / 27 × 100)`. Supplies up to 2.5 difficulty points. |
 | `DifficultyChoices` | `choices` in `difficulty-components` | `clamp((AverageLegal - 1) / 7 × 100)`. Supplies up to 1 point. The landscape analysis determines whether those choices are actually good. |
 | `DifficultyObjects` | `objects` in `difficulty-components` | `clamp((Objects - 1) / 9 × 100)`. Supplies up to 1 point. |
@@ -31,6 +31,7 @@ stored solution. They are not counts of globally distinct move strings.
 | `DifficultyMechanics` | `mechanics` in `difficulty-components` | `clamp(MechanicsUsed / 5 × 100)`. Measures absolute mechanic variety and supplies up to 1 point. |
 | `DifficultyScorpions` | `scorpion-load` and `scorpions` in `difficulty-components` | Cognitive load from autonomous scorpions. Supplies up to 2 additive difficulty points. Detailed below. |
 | `DifficultyDecisionLandscape` | `decision-landscape` and `decision-landscape` in `difficulty-components` | Difficulty of choosing moves which preserve a shortest solution. Supplies up to 3.5 additive points. Detailed below. |
+| `DifficultySequencing` | `sequencing-load` and `sequencing` in `difficulty-components` | Planning load caused by delayed scoring, long setup sequences, repeated movement per goal bug, and coordination between bug types. Supplies up to 2.5 additive points. Detailed below. |
 
 ## Board and solution measurements
 
@@ -46,6 +47,11 @@ stored solution. They are not counts of globally distinct move strings.
 | `ScoringMoves` | `scoring-moves` | Moves which consume at least one star. Multiple stars consumed in one move still count once. Descriptive. |
 | `SetupMoves` | `setup-moves` | Moves which consume no star. Drives `SetupBalance` and `DifficultySetup`. |
 | `InteractionMoves` | `interaction-moves` | Moves where another object's state changes, an egg hatches, or a wall is destroyed. Automatic scorpion changes count. Drives `Interactions`. |
+| `GoalObjects` | `goal-objects` | Starting non-puck, non-scorpion objects which must reach stars. Denominator for moves per goal object. |
+| `AverageMovesPerGoal` | `moves-per-goal-object` | `Moves / GoalObjects`. Drives one quarter of sequencing load. |
+| `MovesBeforeFirstScore` | `moves-before-first-score` | Number of complete moves before the first star is consumed. Drives one quarter of sequencing load. |
+| `LongestSetupRun` | `longest-setup-run` | Longest consecutive sequence of moves consuming no star. Contributes 10% of sequencing load. |
+| `MoverTypeSwitches` | `mover-type-switches` | Number of adjacent solution moves which select different bug types. Contributes 15% of sequencing load. It is deliberately a type-level proxy; switching between two bugs of the same type is not counted. |
 | `EggsHatched` | `eggs-hatched` | Egg units removed from the egg state. Descriptive; a positive count also demonstrates `egg-hatching`. |
 | `WallsDestroyed` | `walls-destroyed` | Wall boundaries destroyed. Descriptive; a positive count also demonstrates `wall-special`. |
 
@@ -87,6 +93,23 @@ The categories are:
 direction-change load. The inputs deliberately total 110%, allowing an
 especially busy scorpion puzzle to reach the component cap in different ways.
 
+## Sequencing fields
+
+`DifficultySequencing` is designed to recognise puzzles such as `s30`, where
+few bugs and a modest number of legal choices conceal a long, ordered shuffle.
+It is the clamped sum of:
+
+```text
+25% × setup moves / all moves
++ 25% × moves before first score / all moves
++ 25% × clamp((moves per goal object - 1) / 5)
++ 15% × mover-type switches / move transitions
++ 10% × longest setup run / all moves
+```
+
+The component rewards sustained repositioning and coordination. It does not
+raise quality directly; it contributes up to 2.5 points to difficulty.
+
 ## Decision-landscape fields
 
 | Go field | Stored name | Meaning and score effect |
@@ -124,5 +147,5 @@ The result is clamped to 0–100. The inputs intentionally can total more than
 100% when unresolved work exists: uncertainty or a resource limit must not
 make a computationally difficult puzzle appear artificially easy.
 
-The stored `version 2` line is the analysis format and formula version. It is
+The stored `version 3` line is the analysis format and formula version. It is
 not a field in `PuzzleAnalysis`.

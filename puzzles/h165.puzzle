@@ -1,5 +1,5 @@
 # A humbug2 puzzle.
-max-moves 12
+max-moves 30
 board:
 .B
 3booo
@@ -8,9 +8,9 @@ board:
 walls:
 wall 2 5 right
 analysis:
-version 2
+version 3
 quality 74
-difficulty 4.4
+difficulty 5.4
 moves 11
 objects 3
 platforms 8
@@ -22,6 +22,12 @@ maximum-legal-moves 3
 scoring-moves 3
 setup-moves 8
 interaction-moves 0
+sequencing-load 46
+goal-objects 3
+moves-per-goal-object 3.67
+moves-before-first-score 3
+longest-setup-run 3
+mover-type-switches 3
 mechanics-used 2/2
 mechanics distance-adjustment,flight
 eggs-hatched 0
@@ -33,22 +39,22 @@ scorpion-steps 0
 scorpion-turns 0
 multi-scorpion-turns 0
 scorpion-direction-changes 0
-decision-landscape 61
+decision-landscape 55
 optimal-moves 12
-detour-moves 2
-dead-end-moves 11
+detour-moves 12
+dead-end-moves 1
 unresolved-moves 0
 branching-steps 10
 forced-choice-steps 9
 multiple-optimal-steps 1
 misleading-steps 10
 average-optimal-moves 1.09
-total-detour-penalty 2
-maximum-detour-penalty 1
-landscape-states-searched 1071
+total-detour-penalty 22
+maximum-detour-penalty 2
+landscape-states-searched 1281
 analysis-timed-out false
 quality-components tightness=100 interactions=0 ability-use=100 manageability=100 setup-balance=87
-difficulty-components depth=30 choices=18 objects=22 setup=73 mechanics=40 scorpions=0 decision-landscape=61
+difficulty-components depth=30 choices=18 objects=22 setup=73 mechanics=40 scorpions=0 decision-landscape=55 sequencing=46
 solution:
 1 b 1 2 d
 2 b 2 2 r

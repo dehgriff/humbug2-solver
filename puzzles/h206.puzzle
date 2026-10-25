@@ -1,14 +1,14 @@
 # A humbug2 puzzle.
-max-moves 20
+max-moves 30
 board:
 loo3
 oUUo
 o.Uo
 lobo
 analysis:
-version 2
+version 3
 quality 73
-difficulty 5.1
+difficulty 6.6
 moves 15
 objects 6
 platforms 15
@@ -20,6 +20,12 @@ maximum-legal-moves 5
 scoring-moves 3
 setup-moves 12
 interaction-moves 0
+sequencing-load 58
+goal-objects 3
+moves-per-goal-object 5.00
+moves-before-first-score 3
+longest-setup-run 7
+mover-type-switches 8
 mechanics-used 3/3
 mechanics distance-adjustment,flight,puck-use
 eggs-hatched 0
@@ -46,7 +52,7 @@ maximum-detour-penalty 2
 landscape-states-searched 23081
 analysis-timed-out false
 quality-components tightness=100 interactions=0 ability-use=100 manageability=100 setup-balance=80
-difficulty-components depth=44 choices=29 objects=56 setup=80 mechanics=60 scorpions=0 decision-landscape=50
+difficulty-components depth=44 choices=29 objects=56 setup=80 mechanics=60 scorpions=0 decision-landscape=50 sequencing=58
 solution:
 1 b u
 2 l 1 1 r
