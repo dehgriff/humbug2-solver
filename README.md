@@ -419,6 +419,9 @@ Coordinate-only input such as `5 2 r` is not accepted.
 
 After every move the program prints a coordinate-labelled board, remaining
 walls, move number, and whether the puzzle is in progress, solved, or lost.
+Walls are also drawn directly between cells with Unicode box-drawing characters,
+including walls on the outside edge of the rendered board; the textual wall
+list remains underneath as a diagnostic reference.
 The display extends from `(1,1)` to the puzzle's lowest and rightmost platform,
 omitting unused trailing rows and columns while retaining leading dots for an
 offset board.

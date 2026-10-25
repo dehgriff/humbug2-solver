@@ -81,6 +81,33 @@ func TestScorpionsRenderBoldBlue(t *testing.T) {
 	}
 }
 
+func TestBoardRendersWallsBetweenAndAroundCells(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nn*\nwalls:\nwall 1 1 up\nwall 1 1 left\nwall 1 1 down\nwall 1 1 right\nwall 1 2 up\nwall 1 2 right\nwall 1 2 down\n")
+	state := initialState(p)
+	var output bytes.Buffer
+	printBoardState(&output, p, state, "Board")
+	text := output.String()
+	for _, want := range []string{"┌────┬────┐", "│ n  │ *  │", "└────┴────┘"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("rendered board missing %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestIsolatedWallsDoNotExtendIntoAdjacentCells(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nno*\nwalls:\nwall 1 1 right\nwall 1 3 down\n")
+	state := initialState(p)
+	var output bytes.Buffer
+	printBoardState(&output, p, state, "Board")
+	text := output.String()
+	if strings.Count(text, "│") != 1 {
+		t.Fatalf("isolated vertical wall should occupy one content row:\n%s", text)
+	}
+	if strings.Count(text, "─") != 4 {
+		t.Fatalf("isolated horizontal wall should occupy one cell width:\n%s", text)
+	}
+}
+
 func TestBoardRenderingOmitsOnlyTrailingRowsAndColumns(t *testing.T) {
 	var p Puzzle
 	p.Terrain[2][3] = Low
@@ -90,11 +117,11 @@ func TestBoardRenderingOmitsOnlyTrailingRowsAndColumns(t *testing.T) {
 	}
 	var output bytes.Buffer
 	printBoardState(&output, p, State{}, "Board")
-	lines := strings.Split(output.String(), "\n")
-	if len(lines) < 6 || !strings.Contains(lines[2], "1") || !strings.Contains(lines[3], ".") || !strings.Contains(lines[5], "o") {
-		t.Fatalf("unexpected trimmed board:\n%s", output.String())
+	text := output.String()
+	if !strings.Contains(text, "     1    2    3    4") || !strings.Contains(text, "\n 1   .") || !strings.Contains(text, "\n 3   .    .    .    o") {
+		t.Fatalf("unexpected trimmed board:\n%s", text)
 	}
-	if strings.Contains(output.String(), "\n 4 ") || strings.Contains(lines[2], "5") {
-		t.Fatalf("render included trailing rows or columns:\n%s", output.String())
+	if strings.Contains(text, "\n 4 ") || strings.Contains(text, "    5    ") {
+		t.Fatalf("render included trailing rows or columns:\n%s", text)
 	}
 }

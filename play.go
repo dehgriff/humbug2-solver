@@ -141,24 +141,35 @@ func printBoardStateWithMove(out io.Writer, p Puzzle, state State, heading strin
 func printBoardStateDecorated(out io.Writer, p Puzzle, state State, heading string, nextMove *Move, solutionColours bool) {
 	fmt.Fprintf(out, "\n%s\n", heading)
 	rows, cols := renderedBoardSize(p)
-	fmt.Fprint(out, "   ")
+	fmt.Fprint(out, "    ")
 	for c := 1; c <= cols; c++ {
-		fmt.Fprintf(out, "%-4d ", c)
+		writeCenteredCellText(out, strconv.Itoa(c))
+		fmt.Fprint(out, " ")
 	}
 	fmt.Fprintln(out)
 	for r := 0; r < rows; r++ {
+		printHorizontalWallLine(out, state.Walls, r, rows, cols)
 		fmt.Fprintf(out, "%2d ", r+1)
 		for c := 0; c < cols; c++ {
+			if verticalWallAt(state.Walls, r, c, rows, cols) {
+				fmt.Fprint(out, "│")
+			} else {
+				fmt.Fprint(out, " ")
+			}
 			pos := Pos{r, c}
 			token := playCellToken(p, state, pos)
 			if solutionColours {
 				writeSolutionCell(out, p, state, pos, token, nextMove)
 				continue
 			}
-			fmt.Fprintf(out, "%-4s ", token)
+			writeCenteredCellText(out, token)
+		}
+		if verticalWallAt(state.Walls, r, cols, rows, cols) {
+			fmt.Fprint(out, "│")
 		}
 		fmt.Fprintln(out)
 	}
+	printHorizontalWallLine(out, state.Walls, rows, rows, cols)
 	printWalls(out, state.Walls)
 	fmt.Fprintln(out, "Tokens: e=egg, a2/a3=ant group, q1>/q2^=scorpion number/direction")
 }
@@ -184,6 +195,11 @@ func writeSolutionCell(out io.Writer, p Puzzle, state State, pos Pos, token stri
 	}
 
 	visibleLength := len(token)
+	if nextMove != nil && bugIndex >= 0 && pos == nextMove.From {
+		visibleLength++
+	}
+	leftPadding, rightPadding := cellPadding(visibleLength)
+	fmt.Fprint(out, strings.Repeat(" ", leftPadding))
 	if bugIndex >= 0 {
 		colour := boldGreen
 		if state.Bugs[bugIndex].Kind == Scorpion {
@@ -192,7 +208,6 @@ func writeSolutionCell(out io.Writer, p Puzzle, state State, pos Pos, token stri
 		if nextMove != nil && pos == nextMove.From {
 			colour = boldRed
 			bugToken += directionArrow(nextMove.Dir)
-			visibleLength++
 		}
 		fmt.Fprintf(out, "%s%s%s", colour, bugToken, reset)
 		if star != "" {
@@ -203,15 +218,87 @@ func writeSolutionCell(out io.Writer, p Puzzle, state State, pos Pos, token stri
 	} else {
 		fmt.Fprint(out, token)
 	}
-	writeCellPadding(out, visibleLength)
+	fmt.Fprint(out, strings.Repeat(" ", rightPadding))
 }
 
-func writeCellPadding(out io.Writer, tokenLength int) {
-	padding := 5 - tokenLength
-	if padding < 1 {
-		padding = 1
+func writeCenteredCellText(out io.Writer, text string) {
+	left, right := cellPadding(len(text))
+	fmt.Fprint(out, strings.Repeat(" ", left), text, strings.Repeat(" ", right))
+}
+
+func cellPadding(tokenLength int) (int, int) {
+	remaining := 4 - tokenLength
+	if remaining < 0 {
+		remaining = 0
 	}
-	fmt.Fprint(out, strings.Repeat(" ", padding))
+	left := remaining / 2
+	return left, remaining - left
+}
+
+func printHorizontalWallLine(out io.Writer, walls [BoardSize][BoardSize]uint8, boundaryRow, rows, cols int) {
+	fmt.Fprint(out, "   ")
+	for c := 0; c < cols; c++ {
+		fmt.Fprint(out, wallJunction(walls, boundaryRow, c, rows, cols))
+		if horizontalWallAt(walls, boundaryRow, c, rows, cols) {
+			if wallJunctionMask(walls, boundaryRow, c+1, rows, cols) == 8 {
+				// A free right endpoint is left blank because the free left
+				// endpoint occupies its boundary position. This keeps the wall
+				// four characters wide while centring it under cell contents.
+				fmt.Fprint(out, "─── ")
+			} else {
+				fmt.Fprint(out, "────")
+			}
+		} else {
+			fmt.Fprint(out, "    ")
+		}
+	}
+	fmt.Fprintln(out, wallJunction(walls, boundaryRow, cols, rows, cols))
+}
+
+func horizontalWallAt(walls [BoardSize][BoardSize]uint8, boundaryRow, column, rows, cols int) bool {
+	if column < 0 || column >= cols || boundaryRow < 0 || boundaryRow > rows {
+		return false
+	}
+	if boundaryRow > 0 && walls[boundaryRow-1][column]&(1<<Down) != 0 {
+		return true
+	}
+	return boundaryRow < rows && walls[boundaryRow][column]&(1<<Up) != 0
+}
+
+func verticalWallAt(walls [BoardSize][BoardSize]uint8, row, boundaryColumn, rows, cols int) bool {
+	if row < 0 || row >= rows || boundaryColumn < 0 || boundaryColumn > cols {
+		return false
+	}
+	if boundaryColumn > 0 && walls[row][boundaryColumn-1]&(1<<Right) != 0 {
+		return true
+	}
+	return boundaryColumn < cols && walls[row][boundaryColumn]&(1<<Left) != 0
+}
+
+func wallJunction(walls [BoardSize][BoardSize]uint8, boundaryRow, boundaryColumn, rows, cols int) string {
+	mask := wallJunctionMask(walls, boundaryRow, boundaryColumn, rows, cols)
+	// A vertical junction with only one arm is the endpoint of an isolated
+	// wall and remains blank. A free horizontal wall starts at its left
+	// boundary (right-only mask) and leaves its right boundary blank, keeping
+	// the visible line one cell wide and aligned with left-aligned contents.
+	return []string{" ", " ", "─", "└", " ", "│", "┌", "├", " ", "┘", "─", "┴", "┐", "┤", "┬", "┼"}[mask]
+}
+
+func wallJunctionMask(walls [BoardSize][BoardSize]uint8, boundaryRow, boundaryColumn, rows, cols int) int {
+	mask := 0
+	if verticalWallAt(walls, boundaryRow-1, boundaryColumn, rows, cols) {
+		mask |= 1 // up
+	}
+	if horizontalWallAt(walls, boundaryRow, boundaryColumn, rows, cols) {
+		mask |= 2 // right
+	}
+	if verticalWallAt(walls, boundaryRow, boundaryColumn, rows, cols) {
+		mask |= 4 // down
+	}
+	if horizontalWallAt(walls, boundaryRow, boundaryColumn-1, rows, cols) {
+		mask |= 8 // left
+	}
+	return mask
 }
 
 func renderedBoardSize(p Puzzle) (int, int) {
