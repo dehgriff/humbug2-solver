@@ -6,6 +6,20 @@ an optional safe breadth-first fallback for pushing-Beetle puzzles. Repeated
 board states are pruned, falling moves are discarded, and no branch is searched
 beyond `max-moves`.
 
+## Isometric puzzle editor
+
+Run the local browser editor with a puzzle file:
+
+```text
+./humbug2 -edit puzzles/s22.puzzle
+```
+
+Then open `http://127.0.0.1:8080`. The editor provides a polished SVG
+isometric view, platform/object editing, walls, eggs, zooming and panning. Its
+**Export puzzle text** button produces the human-editable puzzle format without
+overwriting the source file. Use `-edit-addr HOST:PORT` to choose another local
+address.
+
 ## Puzzle format
 
 ```text

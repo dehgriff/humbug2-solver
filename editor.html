@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Humbug2 Isometric Editor</title>
+<style>
+:root { --ink:#203b3a; --muted:#68817f; --panel:#f7fbf8; --accent:#e45555; --green:#69bf58; }
+* { box-sizing:border-box }
+body { margin:0; color:var(--ink); background:#d7eee7; font:14px/1.4 ui-rounded,"Avenir Next",system-ui,sans-serif; overflow:hidden }
+.app { height:100vh; display:grid; grid-template-columns:260px 1fr; }
+aside { background:rgba(250,253,249,.94); padding:22px; box-shadow:5px 0 22px #41665b25; z-index:3; overflow:auto }
+h1 { font-size:21px; margin:0 0 2px }.filename { color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+h2 { font-size:12px; text-transform:uppercase; letter-spacing:.11em; margin:24px 0 9px; color:#718481 }
+label { display:block; color:var(--muted); font-size:12px; margin:9px 0 4px }
+select,input,button,textarea { font:inherit }
+select,input[type=number] { width:100%; border:1px solid #c9d9d4; border-radius:8px; padding:8px; background:white; color:var(--ink) }
+.checks { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:10px }.checks label { margin:0; color:var(--ink) }
+.walls { display:grid; grid-template-columns:repeat(2,1fr); gap:6px }
+button { border:0; border-radius:9px; padding:9px 11px; background:#e3eee9; color:var(--ink); cursor:pointer; font-weight:650 }
+button:hover { background:#d6e7df } button.active { background:#476c65; color:white }
+.primary { background:#e35f5b; color:white; width:100%; margin-top:9px }.primary:hover { background:#cc4f4b }
+.hint { color:var(--muted); font-size:12px; margin-top:18px }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-top:18px }.stat { background:#e8f2ed; padding:7px 4px; text-align:center; border-radius:8px }.stat b { display:block; font-size:16px }
+main { position:relative; min-width:0; background:radial-gradient(ellipse at 48% 45%,#dff2e9 0,#b9ddd2 65%,#9ccfc0 100%) }
+#board { width:100%; height:100%; display:block; touch-action:none }
+.topbar { position:absolute; left:22px; top:18px; right:22px; display:flex; align-items:center; justify-content:space-between; pointer-events:none }
+.badge { padding:8px 12px; border-radius:20px; background:#ffffffb8; backdrop-filter:blur(8px); box-shadow:0 3px 12px #466d6220 }
+.zoom { pointer-events:auto; display:flex; gap:6px }.zoom button { width:36px; padding:8px }
+.tile { cursor:pointer }.tile:hover .grass { filter:brightness(1.07) }.selected .top { stroke:#fff; stroke-width:4; filter:drop-shadow(0 0 7px #f25d54) }
+.wall { stroke:#8f6045; stroke-width:7; stroke-linecap:round; filter:drop-shadow(0 3px 1px #60402c55); pointer-events:none }
+.bug { pointer-events:none; filter:drop-shadow(0 7px 5px #31514855) }.bug-label { font-weight:900; fill:white; text-anchor:middle; dominant-baseline:central; font-size:13px; text-shadow:0 1px 2px #0008 }
+.coord { fill:#31544e; font-size:9px; text-anchor:middle; opacity:0; pointer-events:none }.tile:hover .coord { opacity:.7 }
+dialog { border:0; border-radius:14px; box-shadow:0 18px 70px #183e3766; width:min(700px,90vw); padding:18px } textarea { width:100%; height:55vh; resize:vertical; border:1px solid #ccd9d5; border-radius:8px; padding:12px; font:13px/1.45 ui-monospace,monospace }
+.dialog-buttons { display:flex; justify-content:flex-end; gap:8px; margin-top:10px }
+@media(max-width:760px){.app{grid-template-columns:210px 1fr}aside{padding:14px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <h1>Humbug2 Editor</h1><div class="filename" id="filename"></div>
+  <div class="stats"><div class="stat"><b id="pc">0</b>tiles</div><div class="stat"><b id="bc">0</b>objects</div><div class="stat"><b id="wc">0</b>walls</div></div>
+  <h2>Selected square <span id="coords">—</span></h2>
+  <label>Platform</label><select id="terrain"><option value="0">No platform</option><option value="1">Low platform</option><option value="2">High platform</option></select>
+  <label>Stars</label><select id="stars"><option>0</option><option>1</option><option>2</option><option>3</option></select>
+  <div class="checks"><label><input type="checkbox" id="trampoline"> Trampoline</label><label><input type="checkbox" id="egg"> Egg</label></div>
+  <label>Object</label><select id="bug"></select>
+  <h2>Walls</h2><div class="walls"><button data-wall="0">↑ Up</button><button data-wall="1">→ Right</button><button data-wall="3">← Left</button><button data-wall="2">↓ Down</button></div>
+  <h2>Puzzle</h2><label>Maximum moves</label><input id="maxmoves" type="number" min="0">
+  <button class="primary" id="export">Export puzzle text</button>
+  <div class="hint">Click a platform to edit it. Click anywhere on the faint construction grid to add a platform. Drag the background to pan; use the mouse wheel to zoom.</div>
+</aside>
+<main><div class="topbar"><div class="badge" id="status">Loading…</div><div class="zoom"><button id="zin">+</button><button id="zout">−</button><button id="fit">Fit</button></div></div><svg id="board"></svg></main>
+</div>
+<dialog id="output"><h1>Exported puzzle</h1><p>Copy this into a <code>.puzzle</code> file. Analysis and solution sections are intentionally omitted after editing.</p><textarea id="text"></textarea><div class="dialog-buttons"><button id="copy">Copy</button><button id="close">Close</button></div></dialog>
+<script>
+// A relatively high camera angle keeps raised platforms from hiding the row
+// immediately behind them. TW/TH controls the projected square's perspective;
+// HIGH is deliberately smaller than the half-row separation.
+const NS='http://www.w3.org/2000/svg', SIZE=13, TW=106, TH=70, HIGH=30;
+const kinds=[['','None'],['L','Ladybird'],['B','Bee'],['S','Spider'],['T','Beetle'],['N','Snail'],['P','Pink ladybird'],['G','Grasshopper'],['F','Butterfly'],['C','Cockroach'],['D','Gold beetle'],['U','Puck'],['Y','Fly'],['A','Ant'],['Q','Scorpion'],['K','Caterpillar']];
+const colours={L:'#e23b3d',B:'#e8b928',S:'#79475f',T:'#506f43',N:'#ce6656',P:'#ee6fa9',G:'#77b640',F:'#3ea9df',C:'#875b3e',D:'#d4a623',U:'#80908e',Y:'#9864cb',A:'#5a4438',Q:'#277bc3',K:'#6cab52'};
+const names=Object.fromEntries(kinds); let p, selected=null, scale=1, panX=0, panY=0;
+const svg=document.querySelector('#board'); const bugSelect=document.querySelector('#bug');
+const terrain=document.querySelector('#terrain'), stars=document.querySelector('#stars');
+const trampoline=document.querySelector('#trampoline'), egg=document.querySelector('#egg');
+const maxmoves=document.querySelector('#maxmoves'), status=document.querySelector('#status');
+const pc=document.querySelector('#pc'), bc=document.querySelector('#bc'), wc=document.querySelector('#wc');
+const output=document.querySelector('#output'), text=document.querySelector('#text');
+kinds.forEach(([v,n])=>bugSelect.add(new Option(n,v)));
+function el(name,attrs={},parent=svg){const x=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs))x.setAttribute(k,v);parent.appendChild(x);return x}
+function point(r,c){return {x:(c-r)*TW/2,y:(c+r)*TH/2}}
+function diamondPath(x,y){return `M${x},${y-TH/2} L${x+TW/2},${y} L${x},${y+TH/2} L${x-TW/2},${y}Z`}
+function render(){svg.replaceChildren(); const defs=el('defs'); defs.innerHTML=`<linearGradient id="dirt" x2="0" y2="1"><stop stop-color="#ad694c"/><stop offset="1" stop-color="#70453e"/></linearGradient><linearGradient id="grass" x2="0" y2="1"><stop stop-color="#92d765"/><stop offset="1" stop-color="#58ad55"/></linearGradient><linearGradient id="gold" x2="0" y2="1"><stop stop-color="#ffe067"/><stop offset="1" stop-color="#eda43c"/></linearGradient>`;
+ const root=el('g',{transform:`translate(${svg.clientWidth/2+panX},${110+panY}) scale(${scale})`});
+ // construction cells make void squares editable
+ for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){let a=point(r,c);el('path',{d:diamondPath(a.x,a.y),fill:'transparent',stroke:'#527f7418','stroke-width':1,'data-r':r,'data-c':c},root).addEventListener('click',cellClick)}
+ let cells=[];for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(p.terrain[r][c])cells.push({r,c,z:r+c}); cells.sort((a,b)=>a.z-b.z||a.r-b.r);
+ for(const {r,c} of cells)drawCell(root,r,c);
+ updateStats(); updateForm();
+}
+function drawCell(root,r,c){const a=point(r,c), high=p.terrain[r][c]===2, lift=high?HIGH:0, y=a.y-lift, g=el('g',{class:'tile'+(selected&&selected.r===r&&selected.c===c?' selected':''),'data-r':r,'data-c':c},root);g.addEventListener('click',cellClick);
+ el('ellipse',{cx:a.x,cy:a.y+42,rx:44,ry:15,fill:'#385f5720'},g);
+ el('path',{d:`M${a.x-TW/2},${y} L${a.x},${y+TH/2} L${a.x},${y+TH/2+25} Q${a.x-30},${y+TH/2+31} ${a.x-TW/2},${y+18}Z`,fill:'url(#dirt)'},g);
+ el('path',{d:`M${a.x+TW/2},${y} L${a.x},${y+TH/2} L${a.x},${y+TH/2+25} Q${a.x+30},${y+TH/2+31} ${a.x+TW/2},${y+18}Z`,fill:'#804a40'},g);
+ el('path',{d:diamondPath(a.x,y),class:'top grass',fill:(p.stars[r][c]?'url(#gold)':'url(#grass)'),stroke:'#508e4c','stroke-width':2},g);
+ if(p.stars[r][c]) drawStar(g,a.x,y,p.stars[r][c]); if(p.trampolines[r][c]) drawTrampoline(g,a.x,y);
+ const b=p.bugs.find(x=>x.row===r&&x.column===c);if(b)drawBug(g,a.x,y-18,b);
+ el('text',{x:a.x,y:y+40,class:'coord'},g).textContent=`${r+1},${c+1}`;
+ drawWalls(g,r,c,a.x,y);
+}
+function drawStar(g,x,y,n){let pts=[];for(let i=0;i<10;i++){let a=-Math.PI/2+i*Math.PI/5,rr=i%2?9:19;pts.push(`${x+Math.cos(a)*rr},${y+Math.sin(a)*rr*.55}`)}el('polygon',{points:pts.join(' '),fill:'#fff255',stroke:'#eebc2c','stroke-width':2},g);if(n>1){let t=el('text',{x:x+22,y:y+2,fill:'#794b29','font-weight':900,'font-size':14},g);t.textContent=n}}
+function drawTrampoline(g,x,y){el('ellipse',{cx:x,cy:y,rx:25,ry:13,fill:'#f5aa39',stroke:'#d96b3e','stroke-width':5},g);el('ellipse',{cx:x,cy:y,rx:11,ry:6,fill:'#ffe36e'},g)}
+function drawBug(g,x,y,b){let q=el('g',{class:'bug',transform:`translate(${x},${y})`},g),col=colours[b.code]||'#555';if(b.egg){el('ellipse',{cx:0,cy:-5,rx:17,ry:23,fill:'#f3ead0',stroke:col,'stroke-width':4},q)}else{if(['B','F','Y'].includes(b.code)){el('ellipse',{cx:-17,cy:-5,rx:17,ry:9,fill:'#dff8ef','fill-opacity':.85,transform:'rotate(-18)'},q);el('ellipse',{cx:17,cy:-5,rx:17,ry:9,fill:'#dff8ef','fill-opacity':.85,transform:'rotate(18)'},q)}el('ellipse',{cx:0,cy:-5,rx:19,ry:16,fill:col,stroke:'#293e38','stroke-width':2},q);if(['L','P'].includes(b.code)){for(const dx of [-8,8])for(const dy of [-10,1])el('circle',{cx:dx,cy:dy,r:3,fill:'#303331'},q)}if(b.code==='Q'){let d=[[0,-28],[27,-5],[0,20],[-27,-5]][b.direction||0];el('path',{d:`M0,-5 L${d[0]},${d[1]}`,stroke:'#173e67','stroke-width':6,'stroke-linecap':'round'},q)}}let t=el('text',{x:0,y:-5,class:'bug-label'},q);t.textContent=b.code==='Q'?'Q'+b.id:(b.code==='A'&&b.count>1?'A'+b.count:b.code)}
+function drawWalls(g,r,c,x,y){const w=p.walls[r][c];if(w&1)el('line',{x1:x,y1:y-TH/2,x2:x+TW/2,y2:y,class:'wall'},g);if(w&2)el('line',{x1:x+TW/2,y1:y,x2:x,y2:y+TH/2,class:'wall'},g);if(w&4)el('line',{x1:x,y1:y+TH/2,x2:x-TW/2,y2:y,class:'wall'},g);if(w&8)el('line',{x1:x-TW/2,y1:y,x2:x,y2:y-TH/2,class:'wall'},g)}
+function cellClick(e){e.stopPropagation();selected={r:+this.dataset.r,c:+this.dataset.c};render()}
+function updateForm(){let disabled=!selected;document.querySelectorAll('aside select,aside input,aside .walls button').forEach(x=>x.disabled=disabled&&x.id!=='maxmoves');if(!selected){document.querySelector('#coords').textContent='—';return}let {r,c}=selected,b=p.bugs.find(x=>x.row===r&&x.column===c);document.querySelector('#coords').textContent=`(${r+1},${c+1})`;terrain.value=p.terrain[r][c];stars.value=p.stars[r][c];trampoline.checked=p.trampolines[r][c];bugSelect.value=b?.code||'';egg.checked=b?.egg||false;document.querySelectorAll('[data-wall]').forEach(x=>x.classList.toggle('active',!!(p.walls[r][c]&(1<<+x.dataset.wall))))}
+function updateStats(){let platforms=p.terrain.flat().filter(Boolean).length,walls=0;for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)for(let d=0;d<4;d++)if(p.walls[r][c]&(1<<d))if(d===1||d===2||r===0&&d===0||c===0&&d===3)walls++;pc.textContent=platforms;bc.textContent=p.bugs.length;wc.textContent=walls;status.textContent=`${platforms}/40 platforms · ${p.bugs.length}/10 objects · ${walls}/30 walls`}
+function change(){if(!selected)return;let {r,c}=selected;p.terrain[r][c]=+terrain.value;if(!p.terrain[r][c]){p.stars[r][c]=0;p.trampolines[r][c]=false;p.bugs=p.bugs.filter(b=>b.row!==r||b.column!==c)}else{p.stars[r][c]=+stars.value;p.trampolines[r][c]=trampoline.checked;if(p.stars[r][c])p.trampolines[r][c]=false;if(p.stars[r][c]||p.trampolines[r][c])p.bugs=p.bugs.filter(b=>b.row!==r||b.column!==c);let b=p.bugs.find(x=>x.row===r&&x.column===c);if(b)b.egg=egg.checked}render()}
+[terrain,stars,trampoline,egg].forEach(x=>x.addEventListener('change',change));bugSelect.addEventListener('change',()=>{let {r,c}=selected;p.bugs=p.bugs.filter(b=>b.row!==r||b.column!==c);if(bugSelect.value){if(!p.terrain[r][c])p.terrain[r][c]=1;p.stars[r][c]=0;p.trampolines[r][c]=false;p.bugs.push({kind:names[bugSelect.value],code:bugSelect.value,row:r,column:c,egg:egg.checked,count:bugSelect.value==='A'?1:0,direction:1,id:1})}render()});
+document.querySelectorAll('[data-wall]').forEach(btn=>btn.onclick=()=>{let {r,c}=selected,d=+btn.dataset.wall,dr=[-1,0,1,0][d],dc=[0,1,0,-1][d],rr=r+dr,cc=c+dc;p.walls[r][c]^=1<<d;if(rr>=0&&rr<SIZE&&cc>=0&&cc<SIZE)p.walls[rr][cc]=(p.walls[r][c]&(1<<d))?p.walls[rr][cc]|1<<((d+2)%4):p.walls[rr][cc]&~(1<<((d+2)%4));render()});
+function exportText(){let out=`max-moves ${maxmoves.value}\nboard:\n`,last=-1,rows=[];for(let r=0;r<SIZE;r++){let s='';for(let c=0;c<SIZE;c++){let b=p.bugs.find(x=>x.row===r&&x.column===c),v=p.terrain[r][c],ch='.';if(b)ch=v===2?b.code:b.code.toLowerCase();else if(p.trampolines[r][c])ch=v===2?'X':'x';else if(p.stars[r][c])ch=v===2?['','!','@','#'][p.stars[r][c]]:['','*','2','3'][p.stars[r][c]];else if(v)ch=v===2?'O':'o';s+=ch} s=s.replace(/\.+$/,'');rows.push(s||'.');if(s)last=r}out+=rows.slice(0,last+1).join('\n')+'\n';let walls=[];for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)for(let d=0;d<4;d++)if(p.walls[r][c]&(1<<d))if(d===1||d===2||(d===0&&r===0)||(d===3&&c===0))walls.push(`wall ${r+1} ${c+1} ${['up','right','down','left'][d]}`);if(walls.length)out+='walls:\n'+walls.join('\n')+'\n';let eggs=p.bugs.filter(b=>b.egg);if(eggs.length)out+='eggs:\n'+eggs.map(b=>`egg ${b.row+1} ${b.column+1}`).join('\n')+'\n';let constraints=[];for(const b of p.bugs){if(b.oneMove)constraints.push(`onemove ${b.row+1} ${b.column+1}`);if(b.noLow)constraints.push(`nolow ${b.row+1} ${b.column+1}`);if(b.noHigh)constraints.push(`nohigh ${b.row+1} ${b.column+1}`)}if(constraints.length)out+='constraints:\n'+constraints.join('\n')+'\n';return out}
+document.querySelector('#export').onclick=()=>{text.value=exportText();output.showModal()};document.querySelector('#copy').onclick=async function(){await navigator.clipboard.writeText(text.value);this.textContent='Copied';setTimeout(()=>this.textContent='Copy',1200)};document.querySelector('#close').onclick=()=>output.close();maxmoves.onchange=()=>p.maxMoves=+maxmoves.value;
+document.querySelector('#zin').onclick=()=>{scale*=1.15;render()};document.querySelector('#zout').onclick=()=>{scale/=1.15;render()};const fitButton=document.querySelector('#fit');fitButton.onclick=()=>{scale=Math.min(svg.clientWidth/1150,svg.clientHeight/760);panX=panY=0;render()};svg.addEventListener('wheel',e=>{e.preventDefault();scale*=e.deltaY<0?1.08:.92;render()},{passive:false});let drag;svg.onpointerdown=e=>{if(e.target===svg)drag={x:e.clientX,y:e.clientY,px:panX,py:panY}};svg.onpointermove=e=>{if(drag){panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;render()}};svg.onpointerup=()=>drag=null;
+fetch('/api/puzzle').then(r=>r.json()).then(x=>{p=x;document.querySelector('#filename').textContent=p.name;maxmoves.value=p.maxMoves;fitButton.click()}).catch(e=>status.textContent=e);
+</script>
+</body>
+</html>
