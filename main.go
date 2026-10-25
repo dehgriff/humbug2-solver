@@ -11,17 +11,21 @@ func main() {
 	play := flag.Bool("play", false, "play the puzzle interactively instead of solving it")
 	playSolution := flag.Bool("play-soln", false, "step through the solution section in the puzzle file")
 	testPuzzles := flag.Bool("test", false, "replay embedded solutions in every .puzzle file in a directory")
+	reportPuzzles := flag.Bool("report", false, "report stored quality and difficulty analysis for a puzzle directory")
+	reportCSV := flag.String("report-csv", "", "write the collection report rows to this CSV file")
 	safe := flag.Bool("safe", false, "use exact BFS for puzzles containing pushing beetles")
 	countSolutions := flag.Bool("count-solutions", false, "count all distinct shortest solution sequences")
 	score := flag.Bool("score", false, "score the quality and difficulty of an embedded solution without solving")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln | -score] [-safe] [-count-solutions] PUZZLE\n", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "       %s -test [PUZZLE-DIRECTORY]\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "       %s -report [-report-csv FILE] [PUZZLE-DIRECTORY]\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "Find a shortest Humbug2 solution up to the puzzle's max-moves limit.")
 	}
 	flag.Parse()
-	if *testPuzzles {
-		if *play || *playSolution || *score || *safe || *countSolutions || flag.NArg() > 1 {
+	reportMode := *reportPuzzles || *reportCSV != ""
+	if *testPuzzles || reportMode {
+		if *testPuzzles && reportMode || *play || *playSolution || *score || *safe || *countSolutions || flag.NArg() > 1 {
 			flag.Usage()
 			os.Exit(2)
 		}
@@ -29,7 +33,13 @@ func main() {
 		if flag.NArg() == 1 {
 			dir = flag.Arg(0)
 		}
-		if err := testPuzzleDirectory(dir, os.Stdout); err != nil {
+		var err error
+		if reportMode {
+			err = reportPuzzleDirectoryWithCSV(dir, os.Stdout, *reportCSV)
+		} else {
+			err = testPuzzleDirectory(dir, os.Stdout)
+		}
+		if err != nil {
 			fatal(err)
 		}
 		return

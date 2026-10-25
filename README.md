@@ -438,6 +438,39 @@ solution:
 Every `PuzzleAnalysis` field, including its stored name and its effect on the
 scores, is documented in [ANALYSIS.md](ANALYSIS.md).
 
+### Collection report
+
+Use `-report` to inspect the stored analysis for every puzzle beneath a
+directory without rerunning the scorer:
+
+```sh
+go run . -report puzzles
+```
+
+The report is ordered by relative filename and includes quality, difficulty,
+move count, tightness, interactions, decision-landscape counts and scorpion
+load. It flags missing solutions or analysis, stale analysis versions, invalid
+files, timeouts, heavily unresolved analysis, low quality, and difficulty
+outliers. It also reports metric ranges and potentially similar puzzle
+profiles. The directory defaults to `puzzles`.
+
+To produce the terminal report and a CSV from the same scan, use:
+
+```sh
+go run . -report -report-csv puzzle-report.csv puzzles
+```
+
+`-report-csv` also implies `-report`, so the shorter form below is equivalent:
+
+```sh
+go run . -report-csv puzzle-report.csv puzzles
+```
+
+The CSV includes explicit validity, solution, analysis-version, timeout, flags,
+and error columns in addition to the displayed metrics. It is suitable for a
+spreadsheet or further scripting and is replaced atomically after the complete
+report has been generated.
+
 ### Search constraints
 
 An optional `constraints:` section can restrict the solver's search. The
