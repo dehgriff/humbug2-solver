@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const BoardSize = 10
+const BoardSize = 13
 
 type BugType byte
 
@@ -104,7 +104,7 @@ type Puzzle struct {
 
 // ParsePuzzle reads a deliberately small, human-editable format.  Blank lines
 // and lines beginning with # are ignored.  The directive "max-moves N" is
-// followed by up to ten board rows, optionally introduced by "board:".
+// followed by up to thirteen board rows, optionally introduced by "board:".
 // Missing trailing cells and rows are treated as void squares.
 // See README.md for the board characters.
 func ParsePuzzle(r io.Reader) (Puzzle, error) {

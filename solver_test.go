@@ -1910,6 +1910,44 @@ func TestParserPadsOmittedTrailingCellsAndRows(t *testing.T) {
 	}
 }
 
+func TestParserAcceptsThirteenColumnsAndBoundaryDirectives(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nn...........*\nwalls:\nwall 1 13 right\n")
+	if p.Bugs[0].Pos != (Pos{0, 0}) || p.Terrain[0][12] != Low || p.Stars[0][12] != 1 {
+		t.Fatalf("13-column board parsed incorrectly: %+v", p)
+	}
+	if p.Walls[0][12]&(1<<Right) == 0 {
+		t.Fatal("wall on column 13 was not parsed")
+	}
+}
+
+func TestParserAcceptsThirteenRows(t *testing.T) {
+	rows := make([]string, BoardSize)
+	for i := range rows {
+		rows[i] = "."
+	}
+	rows[0] = "n"
+	rows[BoardSize-1] = "*"
+	p := puzzle(t, "max-moves 1\nboard:\n"+strings.Join(rows, "\n")+"\n")
+	if p.Terrain[12][0] != Low || p.Stars[12][0] != 1 {
+		t.Fatalf("13th row parsed incorrectly: %+v", p.Stars[12])
+	}
+}
+
+func TestPuzzleSolvesOnThirteenthColumn(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\nooooooooooon*\n")
+	moves, ok := Solve(p)
+	if !ok || len(moves) != 1 || moves[0].From != (Pos{0, 11}) || moves[0].To != (Pos{0, 12}) {
+		t.Fatalf("13-column solution: ok=%v moves=%v", ok, moves)
+	}
+}
+
+func TestParserRejectsFourteenColumns(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\nboard:\nn............*\n"))
+	if err == nil || !strings.Contains(err.Error(), "more than 13 cells") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestCompactStarCharacters(t *testing.T) {
 	low := puzzle(t, "max-moves 6\nboard:\nnnnnnn*23\n")
 	for column, want := range map[int]uint8{6: 1, 7: 2, 8: 3} {

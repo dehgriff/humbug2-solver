@@ -1,5 +1,5 @@
 The puzzle game is called Humbug2
-* The 1-player game is played on a 10x10 grid of squares - the 'board'.
+* The 1-player game is played on a grid of up to 13x13 squares - the 'board'.
 * Each board square may be empty, or it may contain a 'platforms'. A platform may have a 'bug' (insects etc.) on it, or can be empty.
 * A bug must sit on a platform and occupies it. No two bugs can occupy the same platform simultaneously.
 * If a bug moves to a square which does not contains a platform, it falls and the game is over.

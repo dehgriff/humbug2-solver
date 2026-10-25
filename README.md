@@ -1,6 +1,6 @@
 # Humbug2 solver
 
-This command-line program reads a human-editable 10x10 puzzle and searches for
+This command-line program reads a human-editable 13x13 puzzle and searches for
 a solution with the fewest moves. It normally uses iterative-deepening A*, with
 an optional safe breadth-first fallback for pushing-Beetle puzzles. Repeated
 board states are pruned, falling moves are discarded, and no branch is searched
@@ -24,7 +24,7 @@ board:
 ..........
 ```
 
-Each board row contains at most ten cells:
+Each board row contains at most thirteen cells:
 
 | Character | Meaning |
 |---|---|
@@ -135,7 +135,7 @@ and wall rules apply to the resulting bounce.
 
 ### Walls
 
-Walls are listed after the ten board rows using one-based coordinates and a
+Walls are listed after the board rows using one-based coordinates and a
 direction from that square:
 
 ```text
