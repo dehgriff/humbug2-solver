@@ -10,6 +10,28 @@ import (
 
 const BoardSize = 13
 
+const (
+	MaxAppObjects   = 10
+	MaxAppPlatforms = 40
+	MaxAppWalls     = 30
+)
+
+var appBoardMask = [BoardSize]string{
+	"....o........",
+	"...ooo.......",
+	"..ooooo......",
+	".ooooooo.....",
+	"ooooooooo....",
+	".ooooooooo...",
+	"..ooooooooo..",
+	"...ooooooooo.",
+	"....ooooooooo",
+	".....ooooooo.",
+	"......ooooo..",
+	".......ooo...",
+	"........o....",
+}
+
 type BugType byte
 
 const (
@@ -374,7 +396,88 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		p.Walls[from.R][from.C] |= 1 << dir
 		p.Walls[to.R][to.C] |= 1 << oppositeWallDirection(dir)
 	}
+	if err := validateAppCompatibility(p); err != nil {
+		return p, err
+	}
 	return p, nil
+}
+
+func validateAppCompatibility(p Puzzle) error {
+	if len(p.Bugs) > MaxAppObjects {
+		return fmt.Errorf("puzzle has %d objects but the app allows at most %d", len(p.Bugs), MaxAppObjects)
+	}
+
+	platforms := make([]Pos, 0, MaxAppPlatforms)
+	for r := 0; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			if p.Terrain[r][c] != Void {
+				platforms = append(platforms, Pos{r, c})
+			}
+		}
+	}
+	if len(platforms) > MaxAppPlatforms {
+		return fmt.Errorf("puzzle has %d platforms but the app allows at most %d", len(platforms), MaxAppPlatforms)
+	}
+	if !platformsFitAppMask(platforms) {
+		return fmt.Errorf("platform layout does not fit the app board mask under any translation or 90-degree rotation")
+	}
+
+	walls := uniqueWallCount(p.Walls)
+	if walls > MaxAppWalls {
+		return fmt.Errorf("puzzle has %d walls but the app allows at most %d", walls, MaxAppWalls)
+	}
+	return nil
+}
+
+func platformsFitAppMask(platforms []Pos) bool {
+	oriented := append([]Pos(nil), platforms...)
+	for rotation := 0; rotation < 4; rotation++ {
+		if platformsFitTranslatedAppMask(oriented) {
+			return true
+		}
+		for i, platform := range oriented {
+			oriented[i] = Pos{platform.C, BoardSize - 1 - platform.R}
+		}
+	}
+	return false
+}
+
+func platformsFitTranslatedAppMask(platforms []Pos) bool {
+	for rowOffset := -BoardSize + 1; rowOffset < BoardSize; rowOffset++ {
+		for columnOffset := -BoardSize + 1; columnOffset < BoardSize; columnOffset++ {
+			fits := true
+			for _, platform := range platforms {
+				r := platform.R + rowOffset
+				c := platform.C + columnOffset
+				if r < 0 || r >= BoardSize || c < 0 || c >= BoardSize || appBoardMask[r][c] != 'o' {
+					fits = false
+					break
+				}
+			}
+			if fits {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func uniqueWallCount(walls [BoardSize][BoardSize]uint8) int {
+	count := 0
+	for r := 0; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			for _, dir := range directions {
+				if walls[r][c]&(1<<dir) == 0 {
+					continue
+				}
+				next := Pos{r + wallDR[dir], c + wallDC[dir]}
+				if !inside(next) || dir == Right || dir == Down {
+					count++
+				}
+			}
+		}
+	}
+	return count
 }
 
 var wallDR = [4]int{-1, 0, 1, 0}

@@ -1497,7 +1497,7 @@ func TestPuckBouncesFromTrampolineWithoutConsumingStar(t *testing.T) {
 }
 
 func TestPushedPuckCanFallOffBoard(t *testing.T) {
-	p := puzzle(t, "max-moves 2\n..........\n..........\n........tu\n..........\n..........\n..........\n..........\n..........\n......*...\n..........\n")
+	p := puzzle(t, "max-moves 2\n.*.....tu\n")
 	s := State{Bugs: p.Bugs, Stars: p.Stars, Walls: p.Walls}
 	canonicalize(&s)
 	var beetleIndex int
@@ -1507,7 +1507,7 @@ func TestPushedPuckCanFallOffBoard(t *testing.T) {
 		}
 	}
 	next, _, ok := applyMove(p, s, beetleIndex, Right)
-	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle || next.Bugs[0].Pos != (Pos{2, 9}) {
+	if !ok || len(next.Bugs) != 1 || next.Bugs[0].Kind != Beetle || next.Bugs[0].Pos != (Pos{0, 8}) {
 		t.Fatalf("puck fall should leave beetle in play: ok=%v bugs=%+v", ok, next.Bugs)
 	}
 }
@@ -1931,8 +1931,8 @@ func TestParserPadsOmittedTrailingCellsAndRows(t *testing.T) {
 }
 
 func TestParserAcceptsThirteenColumnsAndBoundaryDirectives(t *testing.T) {
-	p := puzzle(t, "max-moves 1\nboard:\nn...........*\nwalls:\nwall 1 13 right\n")
-	if p.Bugs[0].Pos != (Pos{0, 0}) || p.Terrain[0][12] != Low || p.Stars[0][12] != 1 {
+	p := puzzle(t, "max-moves 1\nboard:\n...........n*\nwalls:\nwall 1 13 right\n")
+	if p.Bugs[0].Pos != (Pos{0, 11}) || p.Terrain[0][12] != Low || p.Stars[0][12] != 1 {
 		t.Fatalf("13-column board parsed incorrectly: %+v", p)
 	}
 	if p.Walls[0][12]&(1<<Right) == 0 {
@@ -1946,15 +1946,15 @@ func TestParserAcceptsThirteenRows(t *testing.T) {
 		rows[i] = "."
 	}
 	rows[0] = "n"
-	rows[BoardSize-1] = "*"
+	rows[BoardSize-1] = "....*"
 	p := puzzle(t, "max-moves 1\nboard:\n"+strings.Join(rows, "\n")+"\n")
-	if p.Terrain[12][0] != Low || p.Stars[12][0] != 1 {
+	if p.Terrain[12][4] != Low || p.Stars[12][4] != 1 {
 		t.Fatalf("13th row parsed incorrectly: %+v", p.Stars[12])
 	}
 }
 
 func TestPuzzleSolvesOnThirteenthColumn(t *testing.T) {
-	p := puzzle(t, "max-moves 1\nboard:\nooooooooooon*\n")
+	p := puzzle(t, "max-moves 1\nboard:\n...........n*\n")
 	moves, ok := Solve(p)
 	if !ok || len(moves) != 1 || moves[0].From != (Pos{0, 11}) || moves[0].To != (Pos{0, 12}) {
 		t.Fatalf("13-column solution: ok=%v moves=%v", ok, moves)
@@ -1965,6 +1965,86 @@ func TestParserRejectsFourteenColumns(t *testing.T) {
 	_, err := ParsePuzzle(strings.NewReader("max-moves 1\nboard:\nn............*\n"))
 	if err == nil || !strings.Contains(err.Error(), "more than 13 cells") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestParserRejectsMoreThanTenObjects(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\nboard:\nnnnnn3322\n.nnnnnn..*\n"))
+	if err == nil || !strings.Contains(err.Error(), "objects") || !strings.Contains(err.Error(), "at most 10") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestParserRejectsMoreThanFortyPlatforms(t *testing.T) {
+	rows := appBoardMask
+	rows[0] = strings.Replace(rows[0], "o", "n", 1)
+	rows[1] = strings.Replace(rows[1], "o", "*", 1)
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\nboard:\n" + strings.Join(rows[:], "\n") + "\n"))
+	if err == nil || !strings.Contains(err.Error(), "77 platforms") || !strings.Contains(err.Error(), "at most 40") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestParserRejectsLayoutOutsideTranslatedAppMask(t *testing.T) {
+	_, err := ParsePuzzle(strings.NewReader("max-moves 1\nboard:\nnoooooooo*\n"))
+	if err == nil || !strings.Contains(err.Error(), "does not fit the app board mask") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestAppMaskAllowsQuarterTurnRotation(t *testing.T) {
+	p := puzzle(t, "max-moves 1\nboard:\n...oooo2\n...o\n.OOo\n.xOo\nDpoO\neggs:\negg 5 2\n")
+	var platforms []Pos
+	for r := 0; r < BoardSize; r++ {
+		for c := 0; c < BoardSize; c++ {
+			if p.Terrain[r][c] != Void {
+				platforms = append(platforms, Pos{r, c})
+			}
+		}
+	}
+	if platformsFitTranslatedAppMask(platforms) {
+		t.Fatal("test layout unexpectedly fits without rotation")
+	}
+	if !platformsFitAppMask(platforms) {
+		t.Fatal("test layout did not fit after a quarter-turn rotation")
+	}
+}
+
+func TestAppWallLimitCountsSharedWallsOnce(t *testing.T) {
+	var p Puzzle
+	for r := 0; r < 4; r++ {
+		for c := 0; c < 4; c++ {
+			p.Terrain[r][c] = Low
+		}
+	}
+	addWall := func(from Pos, dir Direction) {
+		p.Walls[from.R][from.C] |= 1 << dir
+		to := add(from, deltas[dir])
+		if inside(to) {
+			p.Walls[to.R][to.C] |= 1 << Direction((int(dir)+2)%4)
+		}
+	}
+	for r := 0; r < 4; r++ {
+		for c := 0; c < 4; c++ {
+			if c < 3 {
+				addWall(Pos{r, c}, Right)
+			}
+			if r < 3 {
+				addWall(Pos{r, c}, Down)
+			}
+		}
+	}
+	for i := 0; i < 4; i++ {
+		addWall(Pos{0, i}, Up)
+		addWall(Pos{3, i}, Down)
+		addWall(Pos{i, 0}, Left)
+		addWall(Pos{i, 3}, Right)
+	}
+	if got := uniqueWallCount(p.Walls); got != 40 {
+		t.Fatalf("unique wall count = %d, want 40", got)
+	}
+	if err := validateAppCompatibility(p); err == nil || !strings.Contains(err.Error(), "40 walls") {
+		t.Fatalf("unexpected validation error: %v", err)
 	}
 }
 

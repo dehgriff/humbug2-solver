@@ -51,6 +51,35 @@ Each board row contains at most thirteen cells:
 | `q` / `Q` | scorpion on a low / high platform |
 | `k` / `K` | caterpillar on a low / high platform |
 
+Every loaded puzzle is checked against the real app's construction limits:
+
+- at most 10 bugs or other board objects, including pucks and scorpions;
+- at most 40 platforms;
+- at most 30 distinct walls; and
+- all platforms must fit, after a rotation in 90-degree increments and one
+  uniform row/column translation, within the app's isometric board mask:
+
+```text
+....o
+...ooo
+..ooooo
+.ooooooo
+ooooooooo
+.ooooooooo
+..ooooooooo
+...ooooooooo
+....ooooooooo
+.....ooooooo
+......ooooo
+.......ooo
+........o
+```
+
+The rotation and translation mean puzzle files do not need to use this exact
+orientation or these exact coordinates; only the shape and relative positions
+of their platforms matter. An incompatible puzzle is rejected before solving,
+playback, testing, or interactive play.
+
 The file must contain the same number of goal bugs and stars; pucks and
 scorpions are not goal bugs. Coordinates printed in solutions are one-based
 `(row,column)` coordinates.

@@ -1,5 +1,6 @@
 The puzzle game is called Humbug2
 * The 1-player game is played on a grid of up to 13x13 squares - the 'board'.
+* The app permits at most 10 bugs or other board objects, 40 platforms, and 30 walls. Platform layouts must fit within the app's fixed isometric board shape, although the complete layout may be rotated in 90-degree increments and translated within the puzzle file's coordinate grid.
 * Each board square may be empty, or it may contain a 'platforms'. A platform may have a 'bug' (insects etc.) on it, or can be empty.
 * A bug must sit on a platform and occupies it. No two bugs can occupy the same platform simultaneously.
 * If a bug moves to a square which does not contains a platform, it falls and the game is over.
