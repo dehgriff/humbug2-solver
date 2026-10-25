@@ -120,6 +120,8 @@ type Puzzle struct {
 	Trampolines [BoardSize][BoardSize]bool
 	Walls       [BoardSize][BoardSize]uint8
 	Bugs        []Bug
+	Analysis    []string
+	HasAnalysis bool
 	Solution    []string
 	HasSolution bool
 }
@@ -141,6 +143,7 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 	}
 	var directiveLines []sourceLine
 	inDirectives := false
+	inAnalysis := false
 	inSolution := false
 	for s.Scan() {
 		lineNo++
@@ -151,7 +154,7 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		// A high platform with three stars is represented by '#'. Within
 		// the board, only hash-prefixed text that is not a valid compact
 		// row is a comment. Hash lines outside the board remain comments.
-		if strings.HasPrefix(line, "#") && (inDirectives || inSolution || !isCompactBoardRow(line)) {
+		if strings.HasPrefix(line, "#") && (inDirectives || inAnalysis || inSolution || !isCompactBoardRow(line)) {
 			continue
 		}
 		if inSolution {
@@ -172,6 +175,17 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 			p.Solution = append(p.Solution, strings.Join(fields[1:], " "))
 			continue
 		}
+		section := strings.ToLower(strings.TrimSuffix(line, ":"))
+		if inAnalysis {
+			if section == "solution" {
+				p.HasSolution = true
+				inSolution = true
+				inAnalysis = false
+				continue
+			}
+			p.Analysis = append(p.Analysis, line)
+			continue
+		}
 		if len(rows) == 0 && strings.HasPrefix(strings.ToLower(line), "max-moves") {
 			fields := strings.Fields(line)
 			if len(fields) != 2 {
@@ -188,7 +202,12 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 		if strings.EqualFold(strings.TrimSuffix(line, ":"), "board") && len(rows) == 0 {
 			continue
 		}
-		section := strings.ToLower(strings.TrimSuffix(line, ":"))
+		if section == "analysis" {
+			p.HasAnalysis = true
+			inAnalysis = true
+			inDirectives = true
+			continue
+		}
 		if section == "solution" {
 			p.HasSolution = true
 			inSolution = true

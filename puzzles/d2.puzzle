@@ -8,6 +8,48 @@ poooo*
 ...s
 eggs:
 egg 3 4
+analysis:
+version 2
+quality 75
+difficulty 5.3
+moves 15
+objects 3
+platforms 15
+visited-platforms 15
+tightness 100
+average-legal-moves 2.87
+opening-legal-moves 2
+maximum-legal-moves 5
+scoring-moves 3
+setup-moves 12
+interaction-moves 1
+mechanics-used 3/3
+mechanics distance-adjustment,egg-hatching,trampoline-use
+eggs-hatched 1
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 67
+optimal-moves 17
+detour-moves 17
+dead-end-moves 9
+unresolved-moves 0
+branching-steps 14
+forced-choice-steps 12
+multiple-optimal-steps 2
+misleading-steps 14
+average-optimal-moves 1.13
+total-detour-penalty 42
+maximum-detour-penalty 6
+landscape-states-searched 12579
+analysis-timed-out false
+quality-components tightness=100 interactions=7 ability-use=100 manageability=100 setup-balance=80
+difficulty-components depth=44 choices=27 objects=22 setup=80 mechanics=60 scorpions=0 decision-landscape=67
 solution:
 1 p r
 2 p d

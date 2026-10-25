@@ -8,6 +8,48 @@ board:
 Eggs:
 egg 1 5
 egg 3 2
+analysis:
+version 2
+quality 85
+difficulty 5.6
+moves 10
+objects 4
+platforms 12
+visited-platforms 12
+tightness 100
+average-legal-moves 4.30
+opening-legal-moves 1
+maximum-legal-moves 7
+scoring-moves 4
+setup-moves 6
+interaction-moves 4
+mechanics-used 5/5
+mechanics beetle-pushing,distance-adjustment,egg-hatching,flight,trampoline-use
+eggs-hatched 2
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 72
+optimal-moves 10
+detour-moves 32
+dead-end-moves 1
+unresolved-moves 0
+branching-steps 9
+forced-choice-steps 9
+multiple-optimal-steps 0
+misleading-steps 9
+average-optimal-moves 1.00
+total-detour-penalty 74
+maximum-detour-penalty 8
+landscape-states-searched 26731
+analysis-timed-out false
+quality-components tightness=100 interactions=40 ability-use=100 manageability=100 setup-balance=100
+difficulty-components depth=26 choices=47 objects=33 setup=60 mechanics=100 scorpions=0 decision-landscape=72
 solution:
 1 t u
 2 s r

@@ -10,6 +10,48 @@ ooo**
 walls:
 wall 4 3 right
 wall 6 3 down
+analysis:
+version 2
+quality 74
+difficulty 4.5
+moves 11
+objects 2
+platforms 10
+visited-platforms 10
+tightness 100
+average-legal-moves 2.36
+opening-legal-moves 1
+maximum-legal-moves 4
+scoring-moves 2
+setup-moves 9
+interaction-moves 1
+mechanics-used 2/2
+mechanics distance-adjustment,wall-special
+eggs-hatched 0
+walls-destroyed 1
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 65
+optimal-moves 11
+detour-moves 1
+dead-end-moves 14
+unresolved-moves 0
+branching-steps 9
+forced-choice-steps 9
+multiple-optimal-steps 0
+misleading-steps 9
+average-optimal-moves 1.00
+total-detour-penalty 1
+maximum-detour-penalty 1
+landscape-states-searched 400
+analysis-timed-out false
+quality-components tightness=100 interactions=9 ability-use=100 manageability=90 setup-balance=78
+difficulty-components depth=30 choices=19 objects=11 setup=82 mechanics=40 scorpions=0 decision-landscape=65
 solution:
 1 l d
 2 d d

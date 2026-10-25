@@ -305,7 +305,8 @@ go run . -count-solutions puzzles/example.puzzle
 ```
 
 The solver first finds and prints a shortest solution and writes it to the
-puzzle file. Only then does it explore all winning move sequences of exactly
+puzzle file. It then calculates and stores the quick quality analysis described
+below. Only after that does it explore all winning move sequences of exactly
 that length and print the total, so a long-running count can be interrupted
 without losing the first solution. It counts move
 sequences rather than distinct final board states, so two different orders
@@ -357,8 +358,9 @@ go build -o humbug2 .
 ```
 
 When a solution is found, the solver appends or replaces a `solution:` section
-at the end of the puzzle file. It preserves everything before an existing
-section. The section contains one consecutively numbered move per line:
+at the end of the puzzle file. It preserves the puzzle definition but replaces
+any stale `analysis:` and `solution:` sections. The solution contains one
+consecutively numbered move per line:
 
 ```text
 solution:
@@ -372,6 +374,69 @@ type exists at that point in the solution. If the type is ambiguous, its
 one-based row and column are required. An unsuccessful search does not alter
 an existing solution section. Because `solution:` consumes the remainder of
 the file, it must be the final section.
+
+### Quality and difficulty scoring
+
+A successful solve also adds an `analysis:` section immediately before
+`solution:`. To recalculate it later without searching for the solution again,
+use:
+
+```sh
+go run . -score puzzles/example.puzzle
+```
+
+This mode validates and replays the embedded solution, prints the headline
+scores, and replaces the stored analysis. Version 2 performs bounded searches
+from every safe alternative move along the solution. It classifies an
+alternative as optimal when it preserves the shortest remaining solution,
+as a detour when it remains solvable but needs extra moves, or as a dead end
+when it cannot solve within the puzzle's remaining `max-moves` allowance. It
+does not remove platforms or otherwise alter the puzzle.
+
+The decision searches share generated moves and known solution-suffix
+distances. Puzzle-wide limits of 2,000,000 searched states and 30 seconds of
+wall-clock time prevent an exceptionally broad puzzle from monopolising a
+batch run. Alternatives not proved by that point are reported separately as
+`unresolved-moves`; they are never incorrectly labelled as dead ends. The
+stored `analysis-timed-out` field records whether the time limit was reached.
+Reaching a limit contributes some difficulty because the search itself found
+the choice hard to resolve, but less than a proven misleading or dead-end
+branch.
+
+Quality is reported out of 100 and currently combines platform tightness,
+interaction rate, use of available special mechanics, manageable puzzle size,
+and the balance between setup and scoring moves. Tightness is the percentage
+of platform squares occupied or traversed during the solution. Difficulty is
+reported out of 10 and combines solution length, average safe choices, object
+count, setup work, mechanics used, and the decision landscape. The latter is
+weighted most heavily and considers non-optimal choices, forced optimal
+choices at branching positions, misleading positions, dead ends, and detour
+severity. These are heuristic comparison aids,
+not claims about how every human will experience a puzzle. The component
+figures are stored as plain text so the formula can be evaluated and tuned as
+the puzzle collection grows:
+
+Scorpion puzzles receive an additional cognitive-load component. It considers
+the peak and average number of active scorpions, how often they move, how often
+several move after the same player move, and their direction changes. This is
+an additive difficulty factor because predicting autonomous paths is extra work
+which is not represented by the number of moves available to the player.
+
+```text
+analysis:
+version 2
+quality 84
+difficulty 5.0
+moves 13
+platforms 11
+visited-platforms 11
+...
+solution:
+1 g r
+```
+
+Every `PuzzleAnalysis` field, including its stored name and its effect on the
+scores, is documented in [ANALYSIS.md](ANALYSIS.md).
 
 ### Search constraints
 

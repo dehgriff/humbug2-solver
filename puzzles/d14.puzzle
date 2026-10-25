@@ -10,6 +10,48 @@ board:
 ...o
 walls:
 wall 3 1 right
+analysis:
+version 2
+quality 70
+difficulty 5.7
+moves 20
+objects 3
+platforms 15
+visited-platforms 14
+tightness 93
+average-legal-moves 3.40
+opening-legal-moves 2
+maximum-legal-moves 6
+scoring-moves 3
+setup-moves 17
+interaction-moves 0
+mechanics-used 2/2
+mechanics distance-adjustment,trampoline-use
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 66
+optimal-moves 22
+detour-moves 0
+dead-end-moves 46
+unresolved-moves 0
+branching-steps 18
+forced-choice-steps 16
+multiple-optimal-steps 2
+misleading-steps 17
+average-optimal-moves 1.10
+total-detour-penalty 0
+maximum-detour-penalty 0
+landscape-states-searched 37723
+analysis-timed-out false
+quality-components tightness=93 interactions=0 ability-use=100 manageability=100 setup-balance=75
+difficulty-components depth=63 choices=34 objects=22 setup=85 mechanics=40 scorpions=0 decision-landscape=66
 solution:
 1 p u
 2 l u

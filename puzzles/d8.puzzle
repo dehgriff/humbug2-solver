@@ -10,6 +10,47 @@ y*..x
 walls:
 eggs:
 egg 4 5
+analysis:
+version 2
+quality 67
+difficulty 4.6
+moves 9
+objects 4
+platforms 17
+visited-platforms 11
+tightness 65
+average-legal-moves 4.22
+opening-legal-moves 7
+maximum-legal-moves 7
+scoring-moves 4
+setup-moves 5
+interaction-moves 1
+mechanics-used 4/4
+mechanics distance-adjustment,egg-hatching,flight,trampoline-use
+eggs-hatched 1
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 55
+optimal-moves 14
+detour-moves 20
+dead-end-moves 4
+unresolved-moves 0
+branching-steps 9
+forced-choice-steps 5
+multiple-optimal-steps 4
+misleading-steps 9
+average-optimal-moves 1.56
+total-detour-penalty 39
+maximum-detour-penalty 3
+landscape-states-searched 3601
+quality-components tightness=65 interactions=11 ability-use=100 manageability=100 setup-balance=96
+difficulty-components depth=22 choices=46 objects=33 setup=56 mechanics=80 scorpions=0 decision-landscape=55
 solution:
 1 y 3 1 r # fly merged with star at (3,2)
 2 g d

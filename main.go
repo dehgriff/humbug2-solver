@@ -13,14 +13,15 @@ func main() {
 	testPuzzles := flag.Bool("test", false, "replay embedded solutions in every .puzzle file in a directory")
 	safe := flag.Bool("safe", false, "use exact BFS for puzzles containing pushing beetles")
 	countSolutions := flag.Bool("count-solutions", false, "count all distinct shortest solution sequences")
+	score := flag.Bool("score", false, "score the quality and difficulty of an embedded solution without solving")
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln] [-safe] [-count-solutions] PUZZLE\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln | -score] [-safe] [-count-solutions] PUZZLE\n", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "       %s -test [PUZZLE-DIRECTORY]\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "Find a shortest Humbug2 solution up to the puzzle's max-moves limit.")
 	}
 	flag.Parse()
 	if *testPuzzles {
-		if *play || *playSolution || *safe || *countSolutions || flag.NArg() > 1 {
+		if *play || *playSolution || *score || *safe || *countSolutions || flag.NArg() > 1 {
 			flag.Usage()
 			os.Exit(2)
 		}
@@ -37,8 +38,8 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	if *play && *playSolution || *countSolutions && (*play || *playSolution) {
-		fatal(fmt.Errorf("-play, -play-soln, and -count-solutions cannot be combined"))
+	if *play && *playSolution || *score && (*play || *playSolution || *countSolutions) || *countSolutions && (*play || *playSolution) {
+		fatal(fmt.Errorf("-play, -play-soln, -score, and -count-solutions cannot be combined"))
 	}
 	f, err := os.Open(flag.Arg(0))
 	if err != nil {
@@ -60,6 +61,23 @@ func main() {
 		if err := PlaySolution(p, os.Stdin, os.Stdout); err != nil {
 			fatal(fmt.Errorf("play solution in %s: %w", flag.Arg(0), err))
 		}
+		return
+	}
+	if *score {
+		replay, err := readSolution(p)
+		if err != nil {
+			fatal(fmt.Errorf("score %s: %w", flag.Arg(0), err))
+		}
+		fmt.Println("Analyzing solution and alternative moves...")
+		analysis, err := AnalyzePuzzle(p, replay.moves)
+		if err != nil {
+			fatal(fmt.Errorf("score %s: %w", flag.Arg(0), err))
+		}
+		if err := writePuzzleAnalysis(flag.Arg(0), analysis); err != nil {
+			fatal(fmt.Errorf("write analysis to %s: %w", flag.Arg(0), err))
+		}
+		printPuzzleAnalysis(os.Stdout, analysis)
+		fmt.Printf("Analysis written to %s\n", flag.Arg(0))
 		return
 	}
 	options := SolveOptions{Safe: *safe, Progress: func(progress SearchProgress) {
@@ -91,6 +109,16 @@ func main() {
 		fmt.Println()
 	}
 	fmt.Printf("Solution written to %s\n", flag.Arg(0))
+	fmt.Println("Analyzing solution and alternative moves...")
+	analysis, err := AnalyzePuzzle(p, moves)
+	if err != nil {
+		fatal(fmt.Errorf("score solution: %w", err))
+	}
+	if err := writePuzzleAnalysis(flag.Arg(0), analysis); err != nil {
+		fatal(fmt.Errorf("write analysis to %s: %w", flag.Arg(0), err))
+	}
+	printPuzzleAnalysis(os.Stdout, analysis)
+	fmt.Printf("Analysis written to %s\n", flag.Arg(0))
 	if *countSolutions {
 		fmt.Printf("Counting distinct solutions of length %d...\n", len(moves))
 		count := CountSolutionsAtDepth(p, len(moves), *safe)

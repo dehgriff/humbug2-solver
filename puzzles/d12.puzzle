@@ -10,6 +10,48 @@ board:
 ..c
 walls:
 wall 3 6 down
+analysis:
+version 2
+quality 66
+difficulty 5.0
+moves 11
+objects 4
+platforms 14
+visited-platforms 12
+tightness 86
+average-legal-moves 4.27
+opening-legal-moves 5
+maximum-legal-moves 6
+scoring-moves 4
+setup-moves 7
+interaction-moves 1
+mechanics-used 2/3
+mechanics flight,wall-special
+eggs-hatched 0
+walls-destroyed 1
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 69
+optimal-moves 11
+detour-moves 31
+dead-end-moves 5
+unresolved-moves 0
+branching-steps 11
+forced-choice-steps 11
+multiple-optimal-steps 0
+misleading-steps 11
+average-optimal-moves 1.00
+total-detour-penalty 64
+maximum-detour-penalty 4
+landscape-states-searched 20433
+analysis-timed-out false
+quality-components tightness=86 interactions=9 ability-use=67 manageability=100 setup-balance=96
+difficulty-components depth=30 choices=47 objects=33 setup=64 mechanics=40 scorpions=0 decision-landscape=69
 solution:
 1 f r
 2 f u # butterfly merged with star at (2,6)

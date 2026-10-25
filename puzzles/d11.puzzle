@@ -8,6 +8,48 @@ board:
 ......g
 ......l
 ....oooo**
+analysis:
+version 2
+quality 70
+difficulty 4.7
+moves 13
+objects 4
+platforms 14
+visited-platforms 12
+tightness 86
+average-legal-moves 5.15
+opening-legal-moves 6
+maximum-legal-moves 8
+scoring-moves 4
+setup-moves 9
+interaction-moves 0
+mechanics-used 3/3
+mechanics distance-adjustment,flight,trampoline-use
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 44
+optimal-moves 25
+detour-moves 42
+dead-end-moves 0
+unresolved-moves 0
+branching-steps 13
+forced-choice-steps 2
+multiple-optimal-steps 11
+misleading-steps 13
+average-optimal-moves 1.92
+total-detour-penalty 76
+maximum-detour-penalty 2
+landscape-states-searched 61574
+analysis-timed-out false
+quality-components tightness=86 interactions=0 ability-use=100 manageability=100 setup-balance=91
+difficulty-components depth=37 choices=59 objects=33 setup=69 mechanics=60 scorpions=0 decision-landscape=44
 solution:
 1 g u
 2 g l # grasshopper merged with star at (3,4)

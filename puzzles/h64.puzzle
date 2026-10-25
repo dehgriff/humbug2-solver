@@ -7,6 +7,48 @@ POOS
 ...b
 walls:
 wall 3 2 left
+analysis:
+version 2
+quality 75
+difficulty 4.0
+moves 8
+objects 3
+platforms 10
+visited-platforms 10
+tightness 100
+average-legal-moves 3.12
+opening-legal-moves 4
+maximum-legal-moves 5
+scoring-moves 3
+setup-moves 5
+interaction-moves 0
+mechanics-used 2/2
+mechanics distance-adjustment,flight
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 57
+optimal-moves 10
+detour-moves 8
+dead-end-moves 7
+unresolved-moves 0
+branching-steps 7
+forced-choice-steps 5
+multiple-optimal-steps 2
+misleading-steps 7
+average-optimal-moves 1.25
+total-detour-penalty 15
+maximum-detour-penalty 2
+landscape-states-searched 407
+analysis-timed-out false
+quality-components tightness=100 interactions=0 ability-use=100 manageability=100 setup-balance=98
+difficulty-components depth=19 choices=30 objects=22 setup=63 mechanics=40 scorpions=0 decision-landscape=57
 solution:
 1 b u
 2 s l

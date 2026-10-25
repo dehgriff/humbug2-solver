@@ -9,6 +9,47 @@ ooxo*
 walls:
 eggs:
 egg 3 4
+analysis:
+version 2
+quality 70
+difficulty 5.9
+moves 20
+objects 3
+platforms 19
+visited-platforms 17
+tightness 89
+average-legal-moves 3.30
+opening-legal-moves 3
+maximum-legal-moves 5
+scoring-moves 3
+setup-moves 17
+interaction-moves 1
+mechanics-used 3/3
+mechanics distance-adjustment,egg-hatching,trampoline-use
+eggs-hatched 1
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 67
+optimal-moves 23
+detour-moves 32
+dead-end-moves 11
+unresolved-moves 0
+branching-steps 19
+forced-choice-steps 16
+multiple-optimal-steps 3
+misleading-steps 18
+average-optimal-moves 1.15
+total-detour-penalty 82
+maximum-detour-penalty 14
+landscape-states-searched 33482
+quality-components tightness=89 interactions=5 ability-use=100 manageability=100 setup-balance=75
+difficulty-components depth=63 choices=33 objects=22 setup=85 mechanics=60 scorpions=0 decision-landscape=67
 solution:
 1 p r
 2 p d

@@ -4,5 +4,46 @@ board:
 .
 .
 ..lo*
+analysis:
+version 2
+quality 41
+difficulty 1.0
+moves 1
+objects 1
+platforms 3
+visited-platforms 3
+tightness 100
+average-legal-moves 1.00
+opening-legal-moves 1
+maximum-legal-moves 1
+scoring-moves 1
+setup-moves 0
+interaction-moves 0
+mechanics-used 0/1
+mechanics none
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 0
+optimal-moves 1
+detour-moves 0
+dead-end-moves 0
+unresolved-moves 0
+branching-steps 0
+forced-choice-steps 0
+multiple-optimal-steps 0
+misleading-steps 0
+average-optimal-moves 1.00
+total-detour-penalty 0
+maximum-detour-penalty 0
+landscape-states-searched 0
+quality-components tightness=100 interactions=0 ability-use=0 manageability=45 setup-balance=40
+difficulty-components depth=0 choices=0 objects=0 setup=0 mechanics=0 scorpions=0 decision-landscape=0
 solution:
 1 l r # ladybird merged with star at (3,5)

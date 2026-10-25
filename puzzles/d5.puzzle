@@ -9,6 +9,48 @@ board:
 walls:
 wall 1 1 left
 eggs:
+analysis:
+version 2
+quality 70
+difficulty 6.1
+moves 29
+objects 4
+platforms 28
+visited-platforms 27
+tightness 96
+average-legal-moves 5.79
+opening-legal-moves 5
+maximum-legal-moves 9
+scoring-moves 4
+setup-moves 25
+interaction-moves 0
+mechanics-used 3/3
+mechanics distance-adjustment,flight,trampoline-use
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 35
+optimal-moves 0
+detour-moves 0
+dead-end-moves 0
+unresolved-moves 168
+branching-steps 29
+forced-choice-steps 0
+multiple-optimal-steps 0
+misleading-steps 0
+average-optimal-moves 0.00
+total-detour-penalty 0
+maximum-detour-penalty 0
+landscape-states-searched 2000000
+analysis-timed-out false
+quality-components tightness=96 interactions=0 ability-use=100 manageability=93 setup-balance=74
+difficulty-components depth=96 choices=68 objects=33 setup=86 mechanics=60 scorpions=0 decision-landscape=35
 solution:
 1 l r
 2 l d

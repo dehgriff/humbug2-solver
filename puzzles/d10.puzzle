@@ -15,6 +15,48 @@ walls:
 eggs:
 egg 3 2
 #egg 3 5
+analysis:
+version 2
+quality 72
+difficulty 6.3
+moves 18
+objects 5
+platforms 20
+visited-platforms 18
+tightness 90
+average-legal-moves 6.50
+opening-legal-moves 3
+maximum-legal-moves 10
+scoring-moves 5
+setup-moves 13
+interaction-moves 1
+mechanics-used 4/4
+mechanics distance-adjustment,egg-hatching,flight,trampoline-use
+eggs-hatched 1
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 62
+optimal-moves 11
+detour-moves 19
+dead-end-moves 5
+unresolved-moves 82
+branching-steps 18
+forced-choice-steps 2
+multiple-optimal-steps 4
+misleading-steps 7
+average-optimal-moves 0.61
+total-detour-penalty 32
+maximum-detour-penalty 3
+landscape-states-searched 2000000
+analysis-timed-out false
+quality-components tightness=90 interactions=6 ability-use=100 manageability=100 setup-balance=88
+difficulty-components depth=56 choices=79 objects=44 setup=72 mechanics=80 scorpions=0 decision-landscape=62
 solution:
 1 l l
 2 b u

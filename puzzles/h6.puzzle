@@ -8,6 +8,48 @@ os.2
 walls:
 wall 1 1 up
 wall 4 1 left
+analysis:
+version 2
+quality 71
+difficulty 3.6
+moves 5
+objects 3
+platforms 11
+visited-platforms 11
+tightness 100
+average-legal-moves 3.40
+opening-legal-moves 4
+maximum-legal-moves 4
+scoring-moves 3
+setup-moves 2
+interaction-moves 0
+mechanics-used 1/1
+mechanics trampoline-use
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 64
+optimal-moves 5
+detour-moves 9
+dead-end-moves 3
+unresolved-moves 0
+branching-steps 5
+forced-choice-steps 5
+multiple-optimal-steps 0
+misleading-steps 5
+average-optimal-moves 1.00
+total-detour-penalty 14
+maximum-detour-penalty 2
+landscape-states-searched 307
+analysis-timed-out false
+quality-components tightness=100 interactions=0 ability-use=100 manageability=85 setup-balance=80
+difficulty-components depth=7 choices=34 objects=22 setup=40 mechanics=20 scorpions=0 decision-landscape=64
 solution:
 1 s l
 2 s u

@@ -10,6 +10,48 @@ board:
 ......o
 walls:
 eggs:
+analysis:
+version 2
+quality 73
+difficulty 6.0
+moves 22
+objects 4
+platforms 17
+visited-platforms 17
+tightness 100
+average-legal-moves 4.68
+opening-legal-moves 8
+maximum-legal-moves 8
+scoring-moves 4
+setup-moves 18
+interaction-moves 0
+mechanics-used 1/1
+mechanics distance-adjustment
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 68
+optimal-moves 3
+detour-moves 11
+dead-end-moves 2
+unresolved-moves 87
+branching-steps 22
+forced-choice-steps 1
+multiple-optimal-steps 1
+misleading-steps 3
+average-optimal-moves 0.14
+total-detour-penalty 29
+maximum-detour-penalty 5
+landscape-states-searched 2000000
+analysis-timed-out false
+quality-components tightness=100 interactions=0 ability-use=100 manageability=100 setup-balance=78
+difficulty-components depth=70 choices=53 objects=33 setup=82 mechanics=20 scorpions=0 decision-landscape=68
 solution:
 1 l r
 2 p 6 7 u

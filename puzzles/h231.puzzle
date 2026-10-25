@@ -12,6 +12,48 @@ walls:
 wall 4 4 right
 wall 5 5 down
 wall 6 4 right
+analysis:
+version 2
+quality 75
+difficulty 5.7
+moves 15
+objects 4
+platforms 15
+visited-platforms 14
+tightness 93
+average-legal-moves 4.33
+opening-legal-moves 5
+maximum-legal-moves 8
+scoring-moves 4
+setup-moves 11
+interaction-moves 2
+mechanics-used 4/4
+mechanics distance-adjustment,flight,trampoline-use,wall-special
+eggs-hatched 0
+walls-destroyed 2
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 65
+optimal-moves 19
+detour-moves 36
+dead-end-moves 10
+unresolved-moves 0
+branching-steps 14
+forced-choice-steps 10
+multiple-optimal-steps 4
+misleading-steps 14
+average-optimal-moves 1.27
+total-detour-penalty 71
+maximum-detour-penalty 5
+landscape-states-searched 166669
+analysis-timed-out false
+quality-components tightness=93 interactions=13 ability-use=100 manageability=100 setup-balance=87
+difficulty-components depth=44 choices=48 objects=33 setup=73 mechanics=80 scorpions=0 decision-landscape=65
 solution:
 1 d r
 2 d d

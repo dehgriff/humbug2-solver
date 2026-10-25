@@ -5,6 +5,48 @@ loo3
 oUUo
 o.Uo
 lobo
+analysis:
+version 2
+quality 73
+difficulty 5.1
+moves 15
+objects 6
+platforms 15
+visited-platforms 15
+tightness 100
+average-legal-moves 3.00
+opening-legal-moves 5
+maximum-legal-moves 5
+scoring-moves 3
+setup-moves 12
+interaction-moves 0
+mechanics-used 3/3
+mechanics distance-adjustment,flight,puck-use
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 50
+optimal-moves 22
+detour-moves 23
+dead-end-moves 0
+unresolved-moves 0
+branching-steps 14
+forced-choice-steps 9
+multiple-optimal-steps 5
+misleading-steps 14
+average-optimal-moves 1.47
+total-detour-penalty 42
+maximum-detour-penalty 2
+landscape-states-searched 23081
+analysis-timed-out false
+quality-components tightness=100 interactions=0 ability-use=100 manageability=100 setup-balance=80
+difficulty-components depth=44 choices=29 objects=56 setup=80 mechanics=60 scorpions=0 decision-landscape=50
 solution:
 1 b u
 2 l 1 1 r

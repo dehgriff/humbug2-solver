@@ -10,6 +10,47 @@ OOOOOO
 ...T.P
 eggs:
 egg 6 4
+analysis:
+version 2
+quality 69
+difficulty 5.3
+moves 12
+objects 4
+platforms 29
+visited-platforms 18
+tightness 62
+average-legal-moves 4.92
+opening-legal-moves 2
+maximum-legal-moves 8
+scoring-moves 4
+setup-moves 8
+interaction-moves 3
+mechanics-used 4/4
+mechanics beetle-pushing,distance-adjustment,egg-hatching,trampoline-use
+eggs-hatched 1
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 59
+optimal-moves 16
+detour-moves 42
+dead-end-moves 1
+unresolved-moves 0
+branching-steps 12
+forced-choice-steps 8
+multiple-optimal-steps 4
+misleading-steps 11
+average-optimal-moves 1.33
+total-detour-penalty 84
+maximum-detour-penalty 3
+landscape-states-searched 1743616
+quality-components tightness=62 interactions=25 ability-use=100 manageability=100 setup-balance=93
+difficulty-components depth=33 choices=56 objects=33 setup=67 mechanics=80 scorpions=0 decision-landscape=59
 solution:
 1 p u
 2 t u

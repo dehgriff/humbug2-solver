@@ -6,6 +6,48 @@ ox
 tn
 xs..f
 oo2o2
+analysis:
+version 2
+quality 71
+difficulty 5.5
+moves 16
+objects 4
+platforms 14
+visited-platforms 12
+tightness 86
+average-legal-moves 4.00
+opening-legal-moves 3
+maximum-legal-moves 7
+scoring-moves 4
+setup-moves 12
+interaction-moves 1
+mechanics-used 3/3
+mechanics beetle-pushing,flight,trampoline-use
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 62
+optimal-moves 19
+detour-moves 45
+dead-end-moves 0
+unresolved-moves 0
+branching-steps 16
+forced-choice-steps 13
+multiple-optimal-steps 3
+misleading-steps 16
+average-optimal-moves 1.19
+total-detour-penalty 92
+maximum-detour-penalty 3
+landscape-states-searched 629904
+analysis-timed-out false
+quality-components tightness=86 interactions=6 ability-use=100 manageability=100 setup-balance=85
+difficulty-components depth=48 choices=43 objects=33 setup=75 mechanics=60 scorpions=0 decision-landscape=62
 solution:
 1 t d
 2 n l

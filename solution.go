@@ -20,7 +20,7 @@ func writePuzzleSolution(path string, p Puzzle, moves []Move) error {
 		return err
 	}
 	prefix := data
-	if start := solutionSectionOffset(data); start >= 0 {
+	if start := firstSectionOffset(data, "analysis", "solution"); start >= 0 {
 		prefix = data[:start]
 	}
 	var text strings.Builder
@@ -56,6 +56,10 @@ func writePuzzleSolution(path string, p Puzzle, moves []Move) error {
 }
 
 func solutionSectionOffset(data []byte) int {
+	return firstSectionOffset(data, "solution")
+}
+
+func firstSectionOffset(data []byte, names ...string) int {
 	start := 0
 	for start < len(data) {
 		end := start
@@ -63,8 +67,10 @@ func solutionSectionOffset(data []byte) int {
 			end++
 		}
 		line := strings.TrimSpace(string(data[start:end]))
-		if strings.EqualFold(line, "solution:") {
-			return start
+		for _, name := range names {
+			if strings.EqualFold(line, name+":") {
+				return start
+			}
 		}
 		start = end + 1
 	}

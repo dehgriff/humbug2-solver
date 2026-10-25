@@ -8,6 +8,47 @@ walls:
 wall 1 3 right
 wall 2 3 down
 wall 2 1 right
+analysis:
+version 2
+quality 61
+difficulty 3.2
+moves 5
+objects 2
+platforms 10
+visited-platforms 10
+tightness 100
+average-legal-moves 2.60
+opening-legal-moves 4
+maximum-legal-moves 4
+scoring-moves 2
+setup-moves 3
+interaction-moves 0
+mechanics-used 1/2
+mechanics wall-special
+eggs-hatched 0
+walls-destroyed 0
+scorpion-load 0
+peak-active-scorpions 0
+average-active-scorpions 0.00
+scorpion-steps 0
+scorpion-turns 0
+multi-scorpion-turns 0
+scorpion-direction-changes 0
+decision-landscape 55
+optimal-moves 6
+detour-moves 2
+dead-end-moves 5
+unresolved-moves 0
+branching-steps 4
+forced-choice-steps 3
+multiple-optimal-steps 1
+misleading-steps 3
+average-optimal-moves 1.20
+total-detour-penalty 4
+maximum-detour-penalty 2
+landscape-states-searched 356
+quality-components tightness=100 interactions=0 ability-use=50 manageability=75 setup-balance=100
+difficulty-components depth=7 choices=23 objects=11 setup=60 mechanics=20 scorpions=0 decision-landscape=55
 solution:
 1 c u
 2 c l
