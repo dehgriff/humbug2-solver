@@ -110,7 +110,10 @@ displacement, but a wall on that same boundary is destroyed and makes the
 action a valid go. A void or board edge does not stop the move: the Gold Beetle
 falls after attempting its full two-square movement, even if it crossed a wall
 and an intermediate star. A direct push cannot carry one through a wall, and a
-pushed Gold Beetle never destroys walls. The `d`/`D`
+pushed Gold Beetle never destroys walls. One exception to wall destruction is
+a wall between the Gold Beetle's low platform and an adjacent high platform:
+the wall belongs to the inaccessible high platform, so bumping into that height
+does not destroy it. The `d`/`D`
 notation uses the final letter of “gold”.
 Flies (`y`/`Y`, using the final letter of “fly”) travel until the first platform
 in the chosen direction and enter landing mode there. They ignore intervening

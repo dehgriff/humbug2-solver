@@ -1175,9 +1175,6 @@ func goldBeetleBlockedMove(p Puzzle, start Pos, dir Direction, occupied map[Pos]
 	cur := start
 	var struck []Pos
 	for step := 0; step < 2; step++ {
-		if hasWall(p, cur, dir) {
-			struck = append(struck, cur)
-		}
 		next := add(cur, deltas[dir])
 		if !inside(next) || p.Terrain[next.R][next.C] == Void {
 			// A missing platform is not a blocking obstacle. Let normal
@@ -1185,7 +1182,13 @@ func goldBeetleBlockedMove(p Puzzle, start Pos, dir Direction, occupied map[Pos]
 			return nil, start, false
 		}
 		if p.Terrain[cur.R][cur.C] == Low && p.Terrain[next.R][next.C] == High {
+			// The wall on a low-to-high boundary belongs to the inaccessible
+			// high platform. The beetle bumps into the platform before it can
+			// strike that wall, so do not include this boundary in struck.
 			return struck, cur, len(struck) > 0
+		}
+		if hasWall(p, cur, dir) {
+			struck = append(struck, cur)
 		}
 		if other, blocked := occupied[next]; blocked {
 			if bugs[other].Kind == Caterpillar && !bugs[other].Egg {

@@ -1275,6 +1275,23 @@ func TestGoldBeetleDestroysWallWhenBugBlocksDestination(t *testing.T) {
 	}
 }
 
+func TestGoldBeetleDoesNotDestroyWallOnInaccessibleHighPlatform(t *testing.T) {
+	p := Puzzle{}
+	p.Terrain[2][2] = Low
+	p.Terrain[2][3] = High
+	p.Walls[2][2] |= 1 << Right
+	p.Walls[2][3] |= 1 << Left
+	s := State{Bugs: []Bug{{Kind: GoldBeetle, Pos: Pos{2, 2}}}, Walls: p.Walls}
+
+	outcome := applyMoveDetailed(p, s, 0, Right)
+	if outcome.status != moveInvalid {
+		t.Fatalf("low Gold Beetle should not climb to the high platform: %+v", outcome)
+	}
+	if !hasWall(Puzzle{Walls: outcome.state.Walls}, Pos{2, 2}, Right) {
+		t.Fatal("Gold Beetle destroyed the wall belonging to the inaccessible high platform")
+	}
+}
+
 func TestGoldBeetleFallsWhenSecondSquareIsVoidAfterWall(t *testing.T) {
 	p := Puzzle{}
 	p.Terrain[4][2] = Low
