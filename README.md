@@ -20,6 +20,23 @@ isometric view, platform/object editing, walls, eggs, zooming and panning. Its
 overwriting the source file. Use `-edit-addr HOST:PORT` to choose another local
 address.
 
+## Minimising a solved puzzle
+
+Use `-minimise` to remove platforms and walls that are unnecessary for the
+embedded solution:
+
+```text
+./humbug2 -minimise puzzles/example.puzzle
+```
+
+Each candidate removal is retained only when the complete stored solution still
+replays and solves the puzzle **and** a safe search finds no solution shorter
+than the stored one. This shortest-path check makes minimisation more expensive
+than replay alone, especially for large pushing-Beetle puzzles. The source file
+is not changed. A complete, paste-ready puzzle is printed to stdout with summary
+comments describing the removed coordinates. The previous analysis is omitted
+because its board metrics would no longer be valid.
+
 ## Puzzle format
 
 ```text

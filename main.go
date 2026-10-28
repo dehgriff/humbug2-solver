@@ -10,6 +10,7 @@ import (
 func main() {
 	edit := flag.Bool("edit", false, "open a browser-based isometric puzzle editor")
 	editAddr := flag.String("edit-addr", "127.0.0.1:8080", "address for the browser editor")
+	minimise := flag.Bool("minimise", false, "remove platforms and walls unused by the stored solution")
 	play := flag.Bool("play", false, "play the puzzle interactively instead of solving it")
 	playSolution := flag.Bool("play-soln", false, "step through the solution section in the puzzle file")
 	testPuzzles := flag.Bool("test", false, "replay embedded solutions in every .puzzle file in a directory")
@@ -19,14 +20,14 @@ func main() {
 	countSolutions := flag.Bool("count-solutions", false, "count all distinct shortest solution sequences")
 	score := flag.Bool("score", false, "score the quality and difficulty of an embedded solution without solving")
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln | -score | -edit] [-safe] [-count-solutions] PUZZLE\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [-play | -play-soln | -score | -edit | -minimise] [-safe] [-count-solutions] PUZZLE\n", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "       %s -test [PUZZLE-DIRECTORY]\n", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "       %s -report [-report-csv FILE] [PUZZLE-DIRECTORY]\n", os.Args[0])
 		fmt.Fprintln(flag.CommandLine.Output(), "Find a shortest Humbug2 solution up to the puzzle's max-moves limit.")
 	}
 	flag.Parse()
 	if *edit {
-		if flag.NArg() != 1 || *play || *playSolution || *score || *testPuzzles || *reportPuzzles || *reportCSV != "" || *safe || *countSolutions {
+		if flag.NArg() != 1 || *play || *playSolution || *score || *minimise || *testPuzzles || *reportPuzzles || *reportCSV != "" || *safe || *countSolutions {
 			flag.Usage()
 			os.Exit(2)
 		}
@@ -37,7 +38,7 @@ func main() {
 	}
 	reportMode := *reportPuzzles || *reportCSV != ""
 	if *testPuzzles || reportMode {
-		if *testPuzzles && reportMode || *play || *playSolution || *score || *safe || *countSolutions || flag.NArg() > 1 {
+		if *testPuzzles && reportMode || *play || *playSolution || *score || *minimise || *safe || *countSolutions || flag.NArg() > 1 {
 			flag.Usage()
 			os.Exit(2)
 		}
@@ -74,6 +75,15 @@ func main() {
 	}
 	if closeErr != nil {
 		fatal(fmt.Errorf("close puzzle: %w", closeErr))
+	}
+	if *minimise {
+		if *play || *playSolution || *score || *safe || *countSolutions {
+			fatal(fmt.Errorf("-minimise cannot be combined with another mode"))
+		}
+		if err := MinimisePuzzle(p, os.Stdout); err != nil {
+			fatal(fmt.Errorf("minimise %s: %w", flag.Arg(0), err))
+		}
+		return
 	}
 	if *play {
 		Play(p, os.Stdin, os.Stdout)
