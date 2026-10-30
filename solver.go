@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 )
 
 type Direction byte
@@ -51,10 +52,17 @@ type searchNode struct {
 
 // SearchProgress describes a search frontier as it is reached.
 type SearchProgress struct {
-	Algorithm   string
-	Depth       int
-	States      int
-	TotalStates int
+	Algorithm       string
+	Depth           int
+	States          int
+	TotalStates     int
+	WorkDone        int
+	WorkTotal       int
+	LevelElapsed    time.Duration
+	TotalElapsed    time.Duration
+	StatesPerSec    float64
+	EstimatedStates int
+	LevelComplete   bool
 }
 
 type SolveOptions struct {
@@ -115,6 +123,7 @@ func CountSolutionsAtDepth(p Puzzle, depth int, safe bool) *big.Int {
 }
 
 func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, bool) {
+	searchStarted := time.Now()
 	nodes := []searchNode{{state: start, parent: -1}}
 	includeWalls := hasGoldBeetle(p)
 	seen := map[string]struct{}{searchStateKey(start, includeWalls): {}}
@@ -127,7 +136,9 @@ func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, boo
 			break
 		}
 		nextFrontier := make([]int, 0)
-		for _, head := range frontier {
+		levelStarted := time.Now()
+		lastReport := levelStarted
+		for frontierIndex, head := range frontier {
 			cur := nodes[head]
 			for i := range cur.state.Bugs {
 				if !canInitiateMove(cur.state.Bugs[i]) {
@@ -153,6 +164,19 @@ func solveBFS(p Puzzle, start State, progress func(SearchProgress)) ([]Move, boo
 					nextFrontier = append(nextFrontier, len(nodes)-1)
 				}
 			}
+			if progress != nil && (frontierIndex+1)%256 == 0 {
+				now := time.Now()
+				levelElapsed := now.Sub(levelStarted)
+				if levelElapsed >= progressFirstReport && now.Sub(lastReport) >= progressInterval {
+					rate := float64(frontierIndex+1) / levelElapsed.Seconds()
+					progress(SearchProgress{
+						Algorithm: "bfs-progress", Depth: depth, States: len(frontier),
+						TotalStates: len(nodes), WorkDone: frontierIndex + 1, WorkTotal: len(frontier),
+						LevelElapsed: levelElapsed, TotalElapsed: now.Sub(searchStarted), StatesPerSec: rate,
+					})
+					lastReport = now
+				}
+			}
 		}
 		frontier = nextFrontier
 	}
@@ -164,22 +188,116 @@ func solveAStar(p Puzzle, start State, progress func(SearchProgress)) ([]Move, b
 	startKey := searchStateKey(start, includeWalls)
 	successorCache := make(map[string][]successor)
 	totalExpanded := 0
+	previousExpanded, previousPreviousExpanded := 0, 0
+	searchStarted := time.Now()
 	for bound := searchLowerBound(start); bound <= p.MaxMoves; bound++ {
 		bestDepth := map[string]int{startKey: 0}
 		path := make([]Move, 0, bound)
-		expanded := 0
-		if idaSearch(p, start, startKey, 0, bound, includeWalls, bestDepth, successorCache, &path, &expanded) {
-			if progress != nil {
-				progress(SearchProgress{Algorithm: "astar", Depth: bound, States: expanded, TotalStates: totalExpanded + expanded})
+		rootSuccessors := cachedSuccessors(p, start, startKey, includeWalls, successorCache)
+		eligible := make([]successor, 0, len(rootSuccessors))
+		for _, next := range rootSuccessors {
+			if 1+next.h <= bound {
+				eligible = append(eligible, next)
 			}
-			return path, true
 		}
-		totalExpanded += expanded
-		if progress != nil {
-			progress(SearchProgress{Algorithm: "astar", Depth: bound, States: expanded, TotalStates: totalExpanded})
+		estimatedStates := 0
+		if previousExpanded > 0 && previousPreviousExpanded > 0 {
+			estimatedStates = int(float64(previousExpanded) * float64(previousExpanded) / float64(previousPreviousExpanded))
+			if estimatedStates <= previousExpanded {
+				estimatedStates = previousExpanded + 1
+			}
 		}
+		tracker := newAStarProgress(bound, totalExpanded, len(eligible), estimatedStates, searchStarted, progress)
+		tracker.visit()
+		for _, next := range eligible {
+			path = append(path, next.move)
+			if remainingBugCount(next.state) == 0 {
+				tracker.finish()
+				return path, true
+			}
+			if oldDepth, exists := bestDepth[next.key]; !exists || oldDepth > 1 {
+				bestDepth[next.key] = 1
+				if idaSearch(p, next.state, next.key, 1, bound, includeWalls, bestDepth, successorCache, &path, tracker) {
+					tracker.finish()
+					return path, true
+				}
+			}
+			path = path[:len(path)-1]
+			tracker.branchComplete()
+		}
+		tracker.finish()
+		totalExpanded += tracker.expanded
+		previousPreviousExpanded, previousExpanded = previousExpanded, tracker.expanded
 	}
 	return nil, false
+}
+
+const (
+	progressCheckStates = 4096
+	progressFirstReport = 2 * time.Second
+	progressInterval    = time.Second
+)
+
+type astarProgress struct {
+	bound           int
+	totalBefore     int
+	branchesDone    int
+	branchesTotal   int
+	estimatedStates int
+	expanded        int
+	searchStarted   time.Time
+	levelStarted    time.Time
+	lastReport      time.Time
+	callback        func(SearchProgress)
+}
+
+func newAStarProgress(bound, totalBefore, branches, estimatedStates int, searchStarted time.Time, callback func(SearchProgress)) *astarProgress {
+	now := time.Now()
+	return &astarProgress{
+		bound: bound, totalBefore: totalBefore, branchesTotal: branches, estimatedStates: estimatedStates,
+		searchStarted: searchStarted, levelStarted: now, lastReport: now,
+		callback: callback,
+	}
+}
+
+func (p *astarProgress) visit() {
+	p.expanded++
+	if p.callback != nil && p.expanded%progressCheckStates == 0 {
+		p.report(false)
+	}
+}
+
+func (p *astarProgress) branchComplete() {
+	p.branchesDone++
+	p.report(false)
+}
+
+func (p *astarProgress) finish() {
+	p.report(true)
+}
+
+func (p *astarProgress) report(complete bool) {
+	if p.callback == nil {
+		return
+	}
+	now := time.Now()
+	levelElapsed := now.Sub(p.levelStarted)
+	if !complete && (levelElapsed < progressFirstReport || now.Sub(p.lastReport) < progressInterval) {
+		return
+	}
+	rate := float64(p.expanded)
+	if seconds := levelElapsed.Seconds(); seconds > 0 {
+		rate /= seconds
+	}
+	p.callback(SearchProgress{
+		Algorithm: "astar", Depth: p.bound, States: p.expanded,
+		TotalStates: p.totalBefore + p.expanded, WorkDone: p.branchesDone,
+		WorkTotal: p.branchesTotal, LevelElapsed: levelElapsed,
+		TotalElapsed: now.Sub(p.searchStarted), StatesPerSec: rate,
+		EstimatedStates: p.estimatedStates,
+		LevelComplete:   complete,
+	})
+	p.lastReport = now
 }
 
 type successor struct {
@@ -237,8 +355,8 @@ func cachedSuccessors(p Puzzle, state State, stateKey string, includeWalls bool,
 	return successors
 }
 
-func idaSearch(p Puzzle, state State, stateKey string, depth, bound int, includeWalls bool, bestDepth map[string]int, successorCache map[string][]successor, path *[]Move, expanded *int) bool {
-	*expanded++
+func idaSearch(p Puzzle, state State, stateKey string, depth, bound int, includeWalls bool, bestDepth map[string]int, successorCache map[string][]successor, path *[]Move, tracker *astarProgress) bool {
+	tracker.visit()
 	successors := cachedSuccessors(p, state, stateKey, includeWalls, successorCache)
 	for _, next := range successors {
 		if depth+1+next.h > bound {
@@ -254,7 +372,7 @@ func idaSearch(p Puzzle, state State, stateKey string, depth, bound int, include
 			continue
 		}
 		bestDepth[next.key] = nextDepth
-		if idaSearch(p, next.state, next.key, nextDepth, bound, includeWalls, bestDepth, successorCache, path, expanded) {
+		if idaSearch(p, next.state, next.key, nextDepth, bound, includeWalls, bestDepth, successorCache, path, tracker) {
 			return true
 		}
 		*path = (*path)[:len(*path)-1]

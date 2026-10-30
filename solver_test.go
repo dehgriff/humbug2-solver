@@ -43,7 +43,7 @@ func TestSolveUsesAStarWhenBugCountIsSafeLowerBound(t *testing.T) {
 	p := puzzle(t, "max-moves 2\n..........\n..........\n..n*n*....\n..........\n..........\n..........\n..........\n..........\n..........\n..........\n")
 	var progress []SearchProgress
 	moves, ok := SolveWithProgress(p, func(update SearchProgress) { progress = append(progress, update) })
-	if !ok || len(moves) != 2 || len(progress) == 0 || progress[0].Algorithm != "astar" || progress[0].Depth != 2 {
+	if !ok || len(moves) != 2 || len(progress) == 0 || progress[0].Algorithm != "astar" || progress[0].Depth != 2 || !progress[0].LevelComplete || progress[0].WorkTotal == 0 {
 		t.Fatalf("unexpected A* result: ok=%v moves=%v progress=%+v", ok, moves, progress)
 	}
 }
@@ -1985,10 +1985,38 @@ func TestParserRejectsFourteenColumns(t *testing.T) {
 	}
 }
 
-func TestParserRejectsMoreThanTenObjects(t *testing.T) {
+func TestParserRejectsMoreThanTenBugs(t *testing.T) {
 	_, err := ParsePuzzle(strings.NewReader("max-moves 1\nboard:\nnnnnn3322\n.nnnnnn..*\n"))
-	if err == nil || !strings.Contains(err.Error(), "objects") || !strings.Contains(err.Error(), "at most 10") {
+	if err == nil || !strings.Contains(err.Error(), "bugs") || !strings.Contains(err.Error(), "at most 10") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestAppBugLimitDoesNotCountPucks(t *testing.T) {
+	var p Puzzle
+	positions := make([]Pos, 0, 13)
+	for r, row := range appBoardMask {
+		for c, cell := range row {
+			if cell == 'o' && len(positions) < 13 {
+				positions = append(positions, Pos{r, c})
+			}
+		}
+	}
+	for i, pos := range positions[:12] {
+		p.Terrain[pos.R][pos.C] = Low
+		kind := Snail
+		if i >= 10 {
+			kind = Puck
+		}
+		p.Bugs = append(p.Bugs, Bug{Kind: kind, Pos: pos})
+	}
+	if err := validateAppCompatibility(p); err != nil {
+		t.Fatalf("10 bugs plus pucks should be compatible: %v", err)
+	}
+	p.Terrain[positions[12].R][positions[12].C] = Low
+	p.Bugs = append(p.Bugs, Bug{Kind: Scorpion, Pos: positions[12]})
+	if err := validateAppCompatibility(p); err == nil || !strings.Contains(err.Error(), "11 bugs") {
+		t.Fatalf("11 bugs plus pucks should exceed the limit: %v", err)
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 const BoardSize = 13
 
 const (
-	MaxAppObjects   = 10
+	MaxAppBugs      = 10
 	MaxAppPlatforms = 40
 	MaxAppWalls     = 30
 )
@@ -422,8 +422,14 @@ func ParsePuzzle(r io.Reader) (Puzzle, error) {
 }
 
 func validateAppCompatibility(p Puzzle) error {
-	if len(p.Bugs) > MaxAppObjects {
-		return fmt.Errorf("puzzle has %d objects but the app allows at most %d", len(p.Bugs), MaxAppObjects)
+	bugCount := 0
+	for _, bug := range p.Bugs {
+		if bug.Kind != Puck {
+			bugCount++
+		}
+	}
+	if bugCount > MaxAppBugs {
+		return fmt.Errorf("puzzle has %d bugs but the app allows at most %d (pucks do not count)", bugCount, MaxAppBugs)
 	}
 
 	platforms := make([]Pos, 0, MaxAppPlatforms)

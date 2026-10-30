@@ -6,6 +6,17 @@ an optional safe breadth-first fallback for pushing-Beetle puzzles. Repeated
 board states are pruned, falling moves are discarded, and no branch is searched
 beyond `max-moves`.
 
+During A* solving, completed lower bounds are reported with their elapsed time,
+total states and search rate. A bound taking more than two seconds also emits
+periodic updates showing states searched and the proportion of eligible
+top-level move branches completed. Branch percentage is an approximate progress
+indicator—the sizes of branches vary and the total number of deeper states
+cannot be known before searching them. Once two bounds have completed, the
+updates also estimate the next bound's state count from the observed growth
+rate. This percentage adapts between bounds and may exceed 100% when a bound
+grows more than predicted; it is an indication rather than a completion
+guarantee.
+
 ## Isometric puzzle editor
 
 Run the local browser editor with a puzzle file:
@@ -84,7 +95,7 @@ Each board row contains at most thirteen cells:
 
 Every loaded puzzle is checked against the real app's construction limits:
 
-- at most 10 bugs or other board objects, including pucks and scorpions;
+- at most 10 bugs, including scorpions but excluding pucks;
 - at most 40 platforms;
 - at most 30 distinct walls; and
 - all platforms must fit, after a rotation in 90-degree increments and one

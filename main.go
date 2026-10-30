@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -115,7 +116,36 @@ func main() {
 	options := SolveOptions{Safe: *safe, Progress: func(progress SearchProgress) {
 		switch progress.Algorithm {
 		case "astar":
-			fmt.Printf("Lower bound %d: %d state(s) searched (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
+			levelTime := progress.LevelElapsed.Round(100 * time.Millisecond)
+			totalTime := progress.TotalElapsed.Round(100 * time.Millisecond)
+			if progress.LevelComplete {
+				if progress.LevelElapsed < 100*time.Millisecond {
+					fmt.Printf("Lower bound %d complete: %d state(s), %s (%d total, %s overall)\n",
+						progress.Depth, progress.States, levelTime, progress.TotalStates, totalTime)
+				} else {
+					fmt.Printf("Lower bound %d complete: %d state(s), %s (%.0f states/s; %d total, %s overall)\n",
+						progress.Depth, progress.States, levelTime, progress.StatesPerSec, progress.TotalStates, totalTime)
+				}
+			} else if progress.WorkTotal > 0 {
+				percent := 100 * float64(progress.WorkDone) / float64(progress.WorkTotal)
+				if progress.EstimatedStates > 0 {
+					estimatedPercent := 100 * float64(progress.States) / float64(progress.EstimatedStates)
+					fmt.Printf("Lower bound %d: ~%.0f%% of estimated states (%d/~%d); %.0f%% of root branches (%d/%d), %s (%.0f states/s)\n",
+						progress.Depth, estimatedPercent, progress.States, progress.EstimatedStates,
+						percent, progress.WorkDone, progress.WorkTotal, levelTime, progress.StatesPerSec)
+				} else {
+					fmt.Printf("Lower bound %d: %.0f%% of root branches (%d/%d), %d state(s), %s (%.0f states/s)\n",
+						progress.Depth, percent, progress.WorkDone, progress.WorkTotal, progress.States, levelTime, progress.StatesPerSec)
+				}
+			} else {
+				fmt.Printf("Lower bound %d: %d state(s), %s (%.0f states/s)\n",
+					progress.Depth, progress.States, levelTime, progress.StatesPerSec)
+			}
+		case "bfs-progress":
+			percent := 100 * float64(progress.WorkDone) / float64(progress.WorkTotal)
+			fmt.Printf("Depth %d: %.0f%% of frontier (%d/%d), %d discovered state(s), %s (%.0f states/s)\n",
+				progress.Depth, percent, progress.WorkDone, progress.WorkTotal, progress.TotalStates,
+				progress.LevelElapsed.Round(100*time.Millisecond), progress.StatesPerSec)
 		default:
 			fmt.Printf("Depth %d: %d state(s) (%d total)\n", progress.Depth, progress.States, progress.TotalStates)
 		}
