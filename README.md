@@ -17,6 +17,21 @@ rate. This percentage adapts between bounds and may exceed 100% when a bound
 grows more than predicted; it is an indication rather than a completion
 guarantee.
 
+### Diagnosing an unsolved puzzle
+
+Run `-diagnose` when a puzzle has no solution and you want to see how close it
+can get:
+
+```text
+./humbug2 -diagnose puzzles/d67.puzzle
+```
+
+The diagnostic explores unique reachable states up to `max-moves`, prints a
+move sequence and board for the closest state, lists its remaining bugs and
+stars, and reports bug types that never reach any star or stars that are never
+consumed. It stops after 30 seconds or two million states and clearly labels a
+bounded result; exhausting the reachable graph gives stronger evidence.
+
 ## Isometric puzzle editor
 
 Run the local browser editor with a puzzle file:
